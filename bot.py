@@ -72,7 +72,7 @@ def error(update, context):
 
 
 def help(update, context):
-    update.message.reply_text("Sem ajuda! Melhor chamar o Batman!")
+    update.message.reply_text("Use / pra listar os comandos ou utilize o seu óculos 4D!")
 
 
 def rss_monitor(bot, update, job_queue):
@@ -104,7 +104,7 @@ def main():
     updater = Updater(TOKEN, use_context=True)
 
     updater.dispatcher.add_handler(CommandHandler("start", start))
-    updater.dispatcher.add_handler(CommandHandler("help", help))
+    updater.dispatcher.add_handler(CommandHandler("ajuda", help))
     updater.dispatcher.add_handler(CommandHandler("episodios", episodios))
     updater.dispatcher.add_handler(CommandHandler("twitter", twitter))
     updater.dispatcher.add_handler(CommandHandler("instagram", instagram))
