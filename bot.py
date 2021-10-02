@@ -76,7 +76,8 @@ def help(update, context):
 
 
 def rss_monitor(bot, update, job_queue):
-    bot.send_message(chat_id=update.message.chat_id, text="Irei notificar quando sair um episódio novo!")
+    update.message.reply_text("Canal no XVideos foi derrubado por excesso de acessos")
+    # bot.send_message(chat_id=update.message.chat_id, text="Irei notificar quando sair um episódio novo!")
     interval = 4 * 3600
     job_queue.run_repeating(notify_assignees, interval, context=update.message.chat_id)
 
