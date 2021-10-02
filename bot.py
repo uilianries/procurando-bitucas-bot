@@ -5,8 +5,8 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 import os
 
 
-PORT = int(os.environ.get('PORT', 443))
-HEROKUAPP = os.gettenv("HEROKUAPP", "uilianries")
+PORT = int(os.environ.get('PORT', 5000))
+HEROKUAPP = os.getenv("HEROKUAPP", "uilianries")
 TOKEN = os.getenv("TELEGRAM_TOKEN", None)
 
 
