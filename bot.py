@@ -42,7 +42,6 @@ def main():
     dp.add_handler(CommandHandler("episodios", episodios))
 
     dp.add_error_handler(error)
-    updater.bot.setWebhook('https://{}.herokuapp.com/'.format(HEROKUAPP) + TOKEN)
 
     updater.idle()
 
