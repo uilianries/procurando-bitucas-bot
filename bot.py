@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 import logging
 from datetime import timedelta, datetime
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+from telegram.ext import Updater, CommandHandler
 import dateutil
 import feedparser
 import os
