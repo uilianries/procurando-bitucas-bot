@@ -32,6 +32,7 @@ def error(update, context):
 
 def main():
     if TOKEN is None:
+        logger.error("TELEGRAM TOKEN is Empty.")
         raise ValueError("TELEGRAM_TOKEN is unset.")
 
     updater = Updater(TOKEN, use_context=True)
