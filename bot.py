@@ -3,7 +3,7 @@
 import logging
 from datetime import timedelta, datetime
 from telegram.ext import Updater, CommandHandler
-import dateutil
+from dateutil.parser import parse
 import feedparser
 import os
 
@@ -60,11 +60,11 @@ def telegram(update, context):
 
 
 def whatsapp(update, context):
-    update.message.reply_text("Não tem grupo de Zap Zap, vai usar o Telegram!")
+    update.message.reply_text("Não tem grupo de Zap Zap, use o Telegram!")
 
 
 def xvideos(update, context):
-    update.message.reply_text("Canal no XVideos foi derrubado por excesso de acessos")
+    update.message.reply_text("Canal no XVideos foi derrubado por excesso de acessos, mas você pode assistir pelo óculos 4D.")
 
 
 def error(update, context):
@@ -75,26 +75,30 @@ def help(update, context):
     update.message.reply_text("Use / pra listar os comandos ou utilize o seu óculos 4D!")
 
 
-def rss_monitor(bot, update, job_queue):
-    update.message.reply_text("Canal no XVideos foi derrubado por excesso de acessos")
-    # bot.send_message(chat_id=update.message.chat_id, text="Irei notificar quando sair um episódio novo!")
+def rss_monitor(update, context):
+    logging.info("User subscribed: {}".format(update.message.from_user.username))
+    context.bot.send_message(chat_id=update.message.chat_id, text="Irei notificar quando sair um episódio novo!")
     interval = 4 * 3600
-    job_queue.run_repeating(notify_assignees, interval, context=update.message.chat_id)
+    context.job_queue.run_repeating(notify_assignees, interval, context=update.message.chat_id)
 
 
-def notify_assignees(bot, job):
+def notify_assignees(context):
     rss_feed = feedparser.parse("http://procurandobitucas.com/podcast/feed/podcast/")
     last_ep = rss_feed["entries"][0]
     date = last_ep["published"]
-    parsed_date = dateutil.parser.parse(date)
+    logger.info("Last ep date: {}".format(date))
+
+    parsed_date = parse(date)
     now = datetime.utcnow()
     if now - parsed_date < timedelta(hours=4):
-        bot.send_message(chat_id=job.context, text="Novo episódio - {}: {}".format(last_ep["title"], last_ep["link"]))
+        logger.info("New episode: {}".format(date))
+        context.bot.send_message(chat_id=context.job.context, text="Novo episódio - {}: {}".format(last_ep["title"], last_ep["link"]))
 
 
-def stop_notify(bot, update, job_queue):
-    bot.send_message(chat_id=update.message.chat_id, text='Notificação de novos episódios foi encerardo.')
-    job_queue.stop()
+def stop_notify(update, context):
+    logging.info("User unsubscribed: {}".format(update.message.from_user.username))
+    context.bot.send_message(chat_id=update.message.chat_id, text='Você não receberá novas notificações de episódios.')
+    context.job_queue.stop()
 
 
 def main():
