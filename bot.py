@@ -106,7 +106,7 @@ def help(update, context):
 
 def inscritos(update, context):
     context.bot.send_message(chat_id=update.message.chat_id,
-                             text="Computei um legião de fãs aproximada em {}".format(randrange(3000000000, 4000000000)))
+                             text="Computei uma legião aproximada em {} fãs!".format(randrange(3000000000, 4000000000)))
 
 
 def notificar(update, context):
