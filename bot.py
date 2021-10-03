@@ -91,6 +91,7 @@ def notificar(update, context):
         return
 
     logging.info("User subscribed: {}".format(update.message.from_user.username))
+    update.message.reply_text("Você será notificado quando sair um novo episódio!")
     add_chat_id(update.message.chat_id)
 
 
