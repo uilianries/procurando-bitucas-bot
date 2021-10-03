@@ -4,6 +4,7 @@ import logging
 from datetime import timedelta, datetime, timezone
 from telegram.ext import Updater, CommandHandler
 from dateutil.parser import parse
+from random import randrange
 import feedparser
 from peewee import Model, SqliteDatabase, IntegerField
 import os
@@ -29,51 +30,69 @@ logger = logging.getLogger(__name__)
 
 
 def start(update, context):
-    update.message.reply_text('Olá! Procurando pelo pior podcast das podosfera?\nAcesse http://procurandobitucas.com/')
+    context.bot.send_message(chat_id=update.message.chat_id, text='Olá! Procurando pelo pior podcast das podosfera?\nAcesse http://procurandobitucas.com/')
 
 
 def episodios(update, context):
-    update.message.reply_text("Todos os episódios: http://procurandobitucas.com/podcast/episodios/")
+    context.bot.send_message(chat_id=update.message.chat_id,
+                             text="Todos os episódios: http://procurandobitucas.com/podcast/episodios/")
 
 
 def twitter(update, context):
-    update.message.reply_text("Twitter oficial do PB: https://twitter.com/procurabitucas")
+    context.bot.send_message(chat_id=update.message.chat_id,
+                             text="Twitter oficial do PB: https://twitter.com/procurabitucas")
 
 
 def instagram(update, context):
-    update.message.reply_text("Instagram oficial do PB: https://www.instagram.com/procurandobitucas")
+    context.bot.send_message(chat_id=update.message.chat_id,
+                             text="Instagram oficial do PB: https://www.instagram.com/procurandobitucas")
 
 
 def spotify(update, context):
-    update.message.reply_text("Ouvir o PB no Spotify: https://open.spotify.com/show/79cz6YQpsKETIZOeHADXeD?si=Pi1YuzU0Tx-d-AfADSYpvg")
+    context.bot.send_message(chat_id=update.message.chat_id,
+                             text="Ouvir o PB no Spotify: https://open.spotify.com/show/79cz6YQpsKETIZOeHADXeD?si=Pi1YuzU0Tx-d-AfADSYpvg")
 
 
 def apple(update, context):
-    update.message.reply_text("Ouvir o PR no Apple Podcast: https://itunes.apple.com/br/podcast/procurando-bitucas-um-podcast/id1336239884?mt=2&ls=1")
+    context.bot.send_message(chat_id=update.message.chat_id,
+                             text="Ouvir o PR no Apple Podcast: https://itunes.apple.com/br/podcast/procurando-bitucas-um-podcast/id1336239884?mt=2&ls=1")
 
 
 def deezer(update, context):
-    update.message.reply_text("Ouvir o PR no Deezer: https://www.deezer.com/br/show/520392")
+    context.bot.send_message(chat_id=update.message.chat_id,
+                             text="Ouvir o PR no Deezer: https://www.deezer.com/br/show/520392")
 
 
 def dono(update, context):
-    update.message.reply_text("Quem é o dono do PB: https://twitter.com/washi_sena")
+    context.bot.send_message(chat_id=update.message.chat_id,
+                             text="Quem é o dono do PB: https://twitter.com/washi_sena")
 
 
 def guerreirinho(update, context):
-    update.message.reply_text("Quem é o host do PB: https://twitter.com/alcofay2k")
+    context.bot.send_message(chat_id=update.message.chat_id,
+                             text="Quem é o host do PB: https://twitter.com/alcofay2k")
 
 
 def telegram(update, context):
-    update.message.reply_text("Grupo oficial do PB no Telegram: https://t.co/vY2s8UZwLQ?amp=1")
+    context.bot.send_message(chat_id=update.message.chat_id,
+                             text="Grupo oficial do PB no Telegram: https://t.co/vY2s8UZwLQ?amp=1")
 
 
 def whatsapp(update, context):
-    update.message.reply_text("Não tem grupo de Zap Zap, use o Telegram!")
+    context.bot.send_message(chat_id=update.message.chat_id,
+                             text="Não tem grupo de Zap Zap, use o /telegram")
 
 
 def xvideos(update, context):
-    update.message.reply_text("Canal no XVideos foi derrubado por excesso de acessos, mas você pode assistir pelo óculos 4D.")
+    context.bot.send_message(chat_id=update.message.chat_id,
+                             text="Canal no XVideos foi derrubado por excesso de acessos, mas você pode assistir pelo óculos 4D.")
+
+
+def ultimo(update, context):
+    rss_feed = feedparser.parse("http://procurandobitucas.com/podcast/feed/podcast/")
+    last_ep = rss_feed["entries"][0]
+    context.bot.send_message(chat_id=update.message.chat_id,
+                             text="Último episódio disponível: {} - {}".format(last_ep["title"], last_ep["link"]))
 
 
 def error(update, context):
@@ -81,7 +100,13 @@ def error(update, context):
 
 
 def help(update, context):
-    update.message.reply_text("Use / pra listar os comandos ou utilize o seu óculos 4D!")
+    context.bot.send_message(chat_id=update.message.chat_id,
+                             text="Use / pra listar os comandos ou utilize o seu óculos 4D!")
+
+
+def inscritos(update, context):
+    context.bot.send_message(chat_id=update.message.chat_id,
+                             text="Computei um legião de fãs aproximada em {}".format(randrange(3000000000, 4000000000)))
 
 
 def notificar(update, context):
@@ -163,6 +188,8 @@ def main():
     updater.dispatcher.add_handler(CommandHandler("xvideos", xvideos))
     updater.dispatcher.add_handler(CommandHandler('notificar', notificar))
     updater.dispatcher.add_handler(CommandHandler('parar', parar))
+    updater.dispatcher.add_handler(CommandHandler('ultimo', ultimo))
+    updater.dispatcher.add_handler(CommandHandler('inscritos', inscritos))
     updater.dispatcher.add_error_handler(error)
     updater.job_queue.run_repeating(notify_assignees, 3600, context=updater.bot)
 
