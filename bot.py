@@ -5,6 +5,7 @@ from datetime import timedelta, datetime
 from telegram.ext import Updater, CommandHandler
 from dateutil.parser import parse
 import feedparser
+import json
 import os
 
 
@@ -12,6 +13,7 @@ PORT = int(os.environ.get('PORT', 5000))
 HEROKUAPP = os.getenv("HEROKUAPP", "uilianries")
 TOKEN = os.getenv("TELEGRAM_TOKEN", None)
 LASTEST_EP = None
+JSON_FILE = "pb.json"
 
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -91,7 +93,7 @@ def notify_assignees(context):
     parsed_date = parse(date)
     now = datetime.utcnow()
     if now - parsed_date < timedelta(hours=4):
-        logger.info("New episode: {}".format(date))
+        logger.info("New episode: {} - Notificate {}".format(date, context.job.context))
         context.bot.send_message(chat_id=context.job.context, text="Novo episódio - {}: {}".format(last_ep["title"], last_ep["link"]))
 
 
@@ -99,6 +101,23 @@ def stop_notify(update, context):
     logging.info("User unsubscribed: {}".format(update.message.from_user.username))
     context.bot.send_message(chat_id=update.message.chat_id, text='Você não receberá novas notificações de episódios.')
     context.job_queue.stop()
+
+
+def remove_chat_id(chat_id):
+    if os.path.isfile(JSON_FILE):
+        with open(JSON_FILE) as fd:
+            data = json.load(fd)
+            try:
+                data.remove(str(chat_id))
+            except:
+                pass
+
+
+def add_chat_id(chat_id):
+    with open(JSON_FILE, "w+") as fd:
+        data = json.load(fd)
+        data.append(str(chat_id))
+        json.dump(data, fd)
 
 
 def main():
