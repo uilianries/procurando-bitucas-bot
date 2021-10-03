@@ -87,11 +87,11 @@ def help(update, context):
 def notificar(update, context):
     if is_subscribed(update.message.chat_id):
         logging.info("User subscribed again: {}".format(update.message.from_user.username))
-        update.message.reply_text("Você já está inscrito para receber novos episódios.")
+        context.bot.send_message(chat_id=update.message.chat_id, text="Você já está inscrito para receber novos episódios.")
         return
 
     logging.info("User subscribed: {}".format(update.message.from_user.username))
-    update.message.reply_text("Você será notificado quando sair um novo episódio!")
+    context.bot.send_message(chat_id=update.message.chat_id, text="Você será notificado quando sair um novo episódio!")
     add_chat_id(update.message.chat_id)
 
 
