@@ -53,7 +53,7 @@ def apple(update, context):
 
 
 def deezer(update, context):
-    update.message.reply_text("Ouvir o PR no Apple Podcast: https://www.deezer.com/br/show/520392")
+    update.message.reply_text("Ouvir o PR no Deezer: https://www.deezer.com/br/show/520392")
 
 
 def dono(update, context):
