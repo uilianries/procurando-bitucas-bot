@@ -1,19 +1,26 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import logging
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, timezone
 from telegram.ext import Updater, CommandHandler
 from dateutil.parser import parse
 import feedparser
-import json
+from peewee import Model, SqliteDatabase, IntegerField
 import os
 
 
-PORT = int(os.environ.get('PORT', 5000))
 HEROKUAPP = os.getenv("HEROKUAPP", "uilianries")
 TOKEN = os.getenv("TELEGRAM_TOKEN", None)
-LASTEST_EP = None
-JSON_FILE = "pb.json"
+DATABASE = SqliteDatabase('pb.sqlite')
+
+
+class BaseModel(Model):
+    class Meta:
+        database = DATABASE
+
+
+class ChatId(BaseModel):
+    chatid = IntegerField(unique=True)
 
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -77,11 +84,14 @@ def help(update, context):
     update.message.reply_text("Use / pra listar os comandos ou utilize o seu óculos 4D!")
 
 
-def rss_monitor(update, context):
+def notificar(update, context):
+    if is_subscribed(update.message.chat_id):
+        logging.info("User subscribed again: {}".format(update.message.from_user.username))
+        update.message.reply_text("Você já está inscrito para receber novos episódios.")
+        return
+
     logging.info("User subscribed: {}".format(update.message.from_user.username))
-    context.bot.send_message(chat_id=update.message.chat_id, text="Irei notificar quando sair um episódio novo!")
-    interval = 4 * 3600
-    context.job_queue.run_repeating(notify_assignees, interval, context=update.message.chat_id)
+    add_chat_id(update.message.chat_id)
 
 
 def notify_assignees(context):
@@ -91,39 +101,49 @@ def notify_assignees(context):
     logger.info("Last ep date: {}".format(date))
 
     parsed_date = parse(date)
-    now = datetime.utcnow()
-    if now - parsed_date < timedelta(hours=4):
-        logger.info("New episode: {} - Notificate {}".format(date, context.job.context))
-        context.bot.send_message(chat_id=context.job.context, text="Novo episódio - {}: {}".format(last_ep["title"], last_ep["link"]))
+    now = datetime.utcnow().replace(tzinfo=timezone.utc)
+    if now - parsed_date < timedelta(hours=1):
+        for entry in ChatId.select():
+            logger.info("New episode: {} - Send to {}".format(date, entry.chatid))
+            context.bot.send_message(chat_id=entry.chatid, text="Novo episódio - {}: {}".format(last_ep["title"], last_ep["link"]))
 
 
-def stop_notify(update, context):
-    logging.info("User unsubscribed: {}".format(update.message.from_user.username))
-    context.bot.send_message(chat_id=update.message.chat_id, text='Você não receberá novas notificações de episódios.')
-    context.job_queue.stop()
+def parar(update, context):
+    if is_subscribed(update.message.chat_id):
+        logging.info("User unsubscribed: {}".format(update.message.from_user.username))
+        context.bot.send_message(chat_id=update.message.chat_id,
+                                 text='Você não receberá novas notificações de episódios.')
+        remove_chat_id(update.message.chat_id)
+    else:
+        logging.info("User unsubscribed again: {}".format(update.message.from_user.username))
+        context.bot.send_message(chat_id=update.message.chat_id,
+                                 text='Você já não está inscrito para receber notficações.')
 
 
 def remove_chat_id(chat_id):
-    if os.path.isfile(JSON_FILE):
-        with open(JSON_FILE) as fd:
-            data = json.load(fd)
-            try:
-                data.remove(str(chat_id))
-            except:
-                pass
+    with DATABASE.atomic():
+        query = ChatId.delete().where(ChatId.chatid == chat_id)
+        query.execute()
 
 
 def add_chat_id(chat_id):
-    with open(JSON_FILE, "w+") as fd:
-        data = json.load(fd)
-        data.append(str(chat_id))
-        json.dump(data, fd)
+    with DATABASE.atomic():
+        ChatId.insert(chatid=chat_id).on_conflict_ignore().execute()
+
+
+def is_subscribed(chat_id):
+    with DATABASE.atomic():
+        query = ChatId.select().where(ChatId.chatid == chat_id)
+        return query
 
 
 def main():
     if TOKEN is None:
         logger.error("TELEGRAM TOKEN is Empty.")
         raise ValueError("TELEGRAM_TOKEN is unset.")
+
+    DATABASE.connect()
+    DATABASE.create_tables([ChatId])
 
     updater = Updater(TOKEN, use_context=True)
 
@@ -140,14 +160,15 @@ def main():
     updater.dispatcher.add_handler(CommandHandler("guerreirinho", guerreirinho))
     updater.dispatcher.add_handler(CommandHandler("whatsapp", whatsapp))
     updater.dispatcher.add_handler(CommandHandler("xvideos", xvideos))
-    updater.dispatcher.add_handler(CommandHandler('notificar', rss_monitor, pass_job_queue=True))
-    updater.dispatcher.add_handler(CommandHandler('parar', stop_notify, pass_job_queue=True))
-
+    updater.dispatcher.add_handler(CommandHandler('notificar', notificar))
+    updater.dispatcher.add_handler(CommandHandler('parar', parar))
     updater.dispatcher.add_error_handler(error)
+    updater.job_queue.run_repeating(notify_assignees, 3600, context=updater.bot)
 
     updater.start_polling()
-
     updater.idle()
+
+    DATABASE.close()
 
 
 if __name__ == '__main__':
