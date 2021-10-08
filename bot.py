@@ -174,9 +174,8 @@ def download_db():
     if not response.ok:
         logger.error("Could not download file: {}".format(response.json()))
         return
-    with DATABASE.atomic():
-        with open("pb.sqlite", "wb") as file_db:
-            file_db.write(response.content)
+    with open("pb.sqlite", "wb") as file_db:
+        file_db.write(response.content)
 
 
 def add_chat_id(chat_id):
