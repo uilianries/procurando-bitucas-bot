@@ -1,6 +1,10 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import logging
+import requests
+import json
+import subprocess
+import base64
 from datetime import timedelta, datetime, timezone
 from telegram.ext import Updater, CommandHandler
 from dateutil.parser import parse
@@ -150,11 +154,36 @@ def remove_chat_id(chat_id):
     with DATABASE.atomic():
         query = ChatId.delete().where(ChatId.chatid == chat_id)
         query.execute()
+    update_db()
+
+
+def update_db():
+    output = subprocess.check_output(['base64', '--wrap', '0', 'pb.sqlite'])
+    with open('pb.sqlite.base64', "wb") as sqlite_base:
+        sqlite_base.write(output)
+    payload = {"branch":"main", "author_email":"uilianries@gmail.com", "author_name":"uilianries", "file_path":"pb.slqite", "content":"<pb.sqlite.base64", "commit_message":"update db", "encoding":"base64"}
+    headers = {"PRIVATE-TOKEN": os.getenv("GITLAB_TOKEN", "FALSE"), "Content-Type": "application/json"}
+    response = requests.put("https://gitlab.com/api/v4/projects/30298296/repository/files/pb.sqlite", data=json.dumps(payload), headers=headers)
+    if not response.ok:
+        logger.error("Could not commit: {}".format(response.json()))
+
+
+def download_db():
+    headers = {"PRIVATE-TOKEN": os.getenv("GITLAB_TOKEN", "FALSE")}
+    response = requests.get("https://gitlab.com/api/v4/projects/30298296/repository/files/pb%2Esqlite/raw?ref=main", headers=headers)
+    if not response.ok:
+        logger.error("Could not download file: {}".format(response.json()))
+        return
+    with DATABASE.atomic():
+        with open("pb.sqlite", "wb") as file_db:
+            file_db.write(response.content)
+    DATABASE.connect()
 
 
 def add_chat_id(chat_id):
     with DATABASE.atomic():
         ChatId.insert(chatid=chat_id).on_conflict_ignore().execute()
+    update_db()
 
 
 def is_subscribed(chat_id):
@@ -167,6 +196,8 @@ def main():
     if TOKEN is None:
         logger.error("TELEGRAM TOKEN is Empty.")
         raise ValueError("TELEGRAM_TOKEN is unset.")
+
+    download_db()
 
     DATABASE.connect()
     DATABASE.create_tables([ChatId])
