@@ -177,7 +177,6 @@ def download_db():
     with DATABASE.atomic():
         with open("pb.sqlite", "wb") as file_db:
             file_db.write(response.content)
-    DATABASE.connect()
 
 
 def add_chat_id(chat_id):
