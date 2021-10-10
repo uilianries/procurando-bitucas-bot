@@ -158,9 +158,11 @@ def remove_chat_id(chat_id):
 
 
 def update_db():
-    output = subprocess.check_output(['base64', '--wrap', '0', 'pb.sqlite'])
-    with open('pb.sqlite.base64', "wb") as sqlite_base:
-        sqlite_base.write(output)
+    with open("pb.sqlite", "rb") as db_fd:
+        content = db_fd.read()
+        encoded = base64.b64encode(content)
+        with open('pb.sqlite.base64', "wb") as sqlite_base:
+            sqlite_base.write(encoded)
     payload = {"branch":"main", "author_email":"uilianries@gmail.com", "author_name":"uilianries", "file_path":"pb.slqite", "content":"<pb.sqlite.base64", "commit_message":"update db", "encoding":"base64"}
     headers = {"PRIVATE-TOKEN": os.getenv("GITLAB_TOKEN", "FALSE"), "Content-Type": "application/json"}
     response = requests.put("https://gitlab.com/api/v4/projects/30298296/repository/files/pb.sqlite", data=json.dumps(payload), headers=headers)
@@ -168,14 +170,31 @@ def update_db():
         logger.error("Could not commit: {}".format(response.json()))
 
 
+def create_db():
+    with open("pb.sqlite", "rb") as db_fd:
+        content = db_fd.read()
+        encoded = base64.b64encode(content)
+        with open('pb.sqlite.base64', "wb") as sqlite_base:
+            sqlite_base.write(encoded)
+    payload = {"branch":"main", "author_email":"uilianries@gmail.com", "author_name":"uilianries", "file_path":"pb.slqite", "content":"<pb.sqlite.base64", "commit_message":"update db", "encoding":"base64"}
+    headers = {"PRIVATE-TOKEN": os.getenv("GITLAB_TOKEN", "FALSE"), "Content-Type": "application/json"}
+    response = requests.post("https://gitlab.com/api/v4/projects/30298296/repository/files/pb.sqlite", data=json.dumps(payload), headers=headers)
+    if not response.ok:
+        logger.error("Could not commit: {}".format(response.json()))
+
+
+
 def download_db():
     headers = {"PRIVATE-TOKEN": os.getenv("GITLAB_TOKEN", "FALSE")}
     response = requests.get("https://gitlab.com/api/v4/projects/30298296/repository/files/pb%2Esqlite/raw?ref=main", headers=headers)
     if not response.ok:
         logger.error("Could not download file: {}".format(response.json()))
+        if "404 File Not Found" in response.json()["message"]:
+            create_db()
         return
     with open("pb.sqlite", "wb") as file_db:
-        file_db.write(response.content)
+        decoded = base64.b64decode(file_db.read().decode())
+        file_db.write(decoded)
 
 
 def add_chat_id(chat_id):
