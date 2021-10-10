@@ -150,63 +150,57 @@ def parar(update, context):
                                  text='Você já não está inscrito para receber notficações.')
 
 
-def remove_chat_id(chat_id):
-    with DATABASE.atomic():
-        query = ChatId.delete().where(ChatId.chatid == chat_id)
-        query.execute()
-    update_db()
-
-
 def update_db():
     with open("pb.sqlite", "rb") as db_fd:
         content = db_fd.read()
         encoded = base64.b64encode(content)
-        with open('pb.sqlite.base64', "wb") as sqlite_base:
-            sqlite_base.write(encoded)
-    payload = {"branch":"main", "author_email":"uilianries@gmail.com", "author_name":"uilianries", "file_path":"pb.slqite", "content":"<pb.sqlite.base64", "commit_message":"update db", "encoding":"base64"}
+    payload = {"branch":"main", "author_email":"uilianries@gmail.com", "author_name":"uilianries", "file_path":"pb.slqite.base64", "content": encoded.decode('ascii'), "commit_message":"update db"}
     headers = {"PRIVATE-TOKEN": os.getenv("GITLAB_TOKEN", "FALSE"), "Content-Type": "application/json"}
-    response = requests.put("https://gitlab.com/api/v4/projects/30298296/repository/files/pb.sqlite", data=json.dumps(payload), headers=headers)
+    response = requests.put("https://gitlab.com/api/v4/projects/30298296/repository/files/pb.sqlite.base64", data=json.dumps(payload), headers=headers)
     if not response.ok:
         logger.error("Could not commit: {}".format(response.json()))
 
 
 def create_db():
+    if not os.path.exists("pb.sqlite"):
+        DATABASE.connect()
+        DATABASE.create_tables([ChatId])
     with open("pb.sqlite", "rb") as db_fd:
         content = db_fd.read()
         encoded = base64.b64encode(content)
-        with open('pb.sqlite.base64', "wb") as sqlite_base:
-            sqlite_base.write(encoded)
-    payload = {"branch":"main", "author_email":"uilianries@gmail.com", "author_name":"uilianries", "file_path":"pb.slqite", "content":"<pb.sqlite.base64", "commit_message":"update db", "encoding":"base64"}
+    payload = {"branch":"main", "author_email":"uilianries@gmail.com", "author_name":"uilianries",  "file_path":"pb.slqite.base64", "content": encoded.decode('ascii'), "commit_message":"update db"}
     headers = {"PRIVATE-TOKEN": os.getenv("GITLAB_TOKEN", "FALSE"), "Content-Type": "application/json"}
-    response = requests.post("https://gitlab.com/api/v4/projects/30298296/repository/files/pb.sqlite", data=json.dumps(payload), headers=headers)
+    response = requests.post("https://gitlab.com/api/v4/projects/30298296/repository/files/pb.sqlite.base64", data=json.dumps(payload), headers=headers)
     if not response.ok:
         logger.error("Could not commit: {}".format(response.json()))
 
 
-
 def download_db():
     headers = {"PRIVATE-TOKEN": os.getenv("GITLAB_TOKEN", "FALSE")}
-    response = requests.get("https://gitlab.com/api/v4/projects/30298296/repository/files/pb%2Esqlite/raw?ref=main", headers=headers)
+    response = requests.get("https://gitlab.com/api/v4/projects/30298296/repository/files/pb%2Esqlite%2Ebase64/raw?ref=main", headers=headers)
     if not response.ok:
         logger.error("Could not download file: {}".format(response.json()))
         if "404 File Not Found" in response.json()["message"]:
             create_db()
         return
+    decoded = base64.b64decode(response.content.decode('ascii'))
     with open("pb.sqlite", "wb") as file_db:
-        decoded = base64.b64decode(file_db.read().decode())
         file_db.write(decoded)
 
 
 def add_chat_id(chat_id):
-    with DATABASE.atomic():
-        ChatId.insert(chatid=chat_id).on_conflict_ignore().execute()
+    ChatId.insert(chatid=chat_id).on_conflict_ignore().execute()
+    update_db()
+
+
+def remove_chat_id(chat_id):
+    query = ChatId.delete().where(ChatId.chatid == chat_id)
+    query.execute()
     update_db()
 
 
 def is_subscribed(chat_id):
-    with DATABASE.atomic():
-        query = ChatId.select().where(ChatId.chatid == chat_id)
-        return query
+    return ChatId.select().where(ChatId.chatid == chat_id)
 
 
 def main():
@@ -216,8 +210,7 @@ def main():
 
     download_db()
 
-    DATABASE.connect()
-    DATABASE.create_tables([ChatId])
+    DATABASE.connect(reuse_if_open=True)
 
     updater = Updater(TOKEN, use_context=True)
 
@@ -243,7 +236,6 @@ def main():
 
     updater.start_polling()
     updater.idle()
-
     DATABASE.close()
 
 
