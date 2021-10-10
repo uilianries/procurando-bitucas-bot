@@ -132,7 +132,7 @@ def notify_assignees(context):
 
     parsed_date = parse(date)
     now = datetime.utcnow().replace(tzinfo=timezone.utc)
-    if now - parsed_date < timedelta(hours=1):
+    if now - parsed_date < timedelta(minutes=15):
         for entry in ChatId.select():
             logger.info("New episode: {} - Send to {}".format(date, entry.chatid))
             context.bot.send_message(chat_id=entry.chatid, text="Novo episódio - {}: {}".format(last_ep["title"], last_ep["link"]))
@@ -232,7 +232,7 @@ def main():
     updater.dispatcher.add_handler(CommandHandler('ultimo', ultimo))
     updater.dispatcher.add_handler(CommandHandler('inscritos', inscritos))
     updater.dispatcher.add_error_handler(error)
-    updater.job_queue.run_repeating(notify_assignees, 3600, context=updater.bot)
+    updater.job_queue.run_repeating(notify_assignees, 900, context=updater.bot)
 
     updater.start_polling()
     updater.idle()
