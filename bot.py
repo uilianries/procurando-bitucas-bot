@@ -76,6 +76,10 @@ def guerreirinho(update, context):
     context.bot.send_message(chat_id=update.message.chat_id,
                              text="Quem é o host do PB: https://twitter.com/alcofay2k")
 
+def fotografo(update, context):
+    context.bot.send_message(chat_id=update.message.chat_id,
+                             text="Quem é o fotógrafo do PB: https://twitter.com/mmessiasjunior")
+
 
 def telegram(update, context):
     context.bot.send_message(chat_id=update.message.chat_id,
@@ -225,6 +229,7 @@ def main():
     updater.dispatcher.add_handler(CommandHandler("telegram", telegram))
     updater.dispatcher.add_handler(CommandHandler("dono", dono))
     updater.dispatcher.add_handler(CommandHandler("guerreirinho", guerreirinho))
+    updater.dispatcher.add_handler(CommandHandler("fotografo", fotografo))
     updater.dispatcher.add_handler(CommandHandler("whatsapp", whatsapp))
     updater.dispatcher.add_handler(CommandHandler("xvideos", xvideos))
     updater.dispatcher.add_handler(CommandHandler('notificar', notificar))
