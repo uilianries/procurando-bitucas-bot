@@ -1,0 +1,18 @@
+episodios - Lista de Episódios no site oficial
+ultimo - Último episódio disponível
+twitter - Conta oficial no Twitter
+instagram - Conta oficial no Instagram
+spotify - Conta oficial no Spotify
+apple - Conta oficial no Apple Podcast
+deezer - Conta oficial no Deezer
+telegram - Grupo oficial no Telegram
+dono - Quem é o Dono do podscast
+guerreirinho - Quem é o Host do podcast
+notificar - Notificar quando sair novos episódios
+parar - Parar de receber notificações de novos episódios
+whatsapp - Grupo oficial do Zap Zap
+xvideos - Canal oficial no XXX
+inscritos - Quantos fãs o PB tem espalhado pelo mundo (aprox)
+ajuda - Listar todos os comandos disponíveis
+fotografo - Quem é o #chupamessias
+ranking - Posição do PB na podosfera

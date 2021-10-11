@@ -5,6 +5,7 @@ import re
 import os
 import json
 import base64
+import random
 
 import requests
 
@@ -37,6 +38,23 @@ class ChatId(BaseModel):
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+ERROR_QUOTES = [
+    "Ops! Algo saiu errado! Contate algum humano do PB pra resolver essa merda.",
+    "Esse comando não funcionou, eu não assumo esse B.O.! Foi culpa do programador.",
+    "Não funcionou e não sou pago pra fazer isso, resolva você o caso.",
+    "Não consegui completar o comando, a SkyNet está de folga hoje.",
+    "O Guerreirinho tropeçou no cabo de rede, não consegui fazer o que você pediu.",
+    "O comando falhou, vai ver o Washi fez teste em produção outra vez.",
+    "Não estou com vontade de atender humano folgado hoje, peça pro host.",
+    "Você de novo aqui? Vai ver por isso que não está funcionando essa merda.",
+    "Esse comando está com interferência causada pelo seu óculos 4D, tire sua cueca e tente novamente",
+]
+
+
+def get_error_message():
+    return random.choice(ERROR_QUOTES)
 
 
 def start(update, context):
@@ -135,10 +153,14 @@ def ranking(update, context):
     raw_position = soup.find('td', class_="pr2 pb2 w2")
     if not raw_position:
         logger.error("Could not find td tag in chartable.com")
+        context.bot.send_message(chat_id=update.message.chat_id, text=get_error_message())
+        return
+
     match = re.search(r"#(\d+)", raw_position.decode())
     if not match:
         logger.error("Could not find ranking match on chartable.com")
-
+        context.bot.send_message(chat_id=update.message.chat_id, text=get_error_message())
+        return
     context.bot.send_message(chat_id=update.message.chat_id,
                              text="Posição atual no Apple Podcast: {}."
                                   "\nAjude o PB falando mal dos outros podcasts na categoria hobbies.".format(match.group(0)))
