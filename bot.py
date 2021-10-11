@@ -10,7 +10,7 @@ import random
 import requests
 
 from datetime import timedelta, datetime, timezone
-from telegram.ext import Updater, CommandHandler
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from dateutil.parser import parse
 from random import randrange
 import feedparser
@@ -51,6 +51,28 @@ ERROR_QUOTES = [
     "Você de novo aqui? Vai ver por isso que não está funcionando essa merda.",
     "Esse comando está com interferência causada pelo seu óculos 4D, tire sua cueca e tente novamente",
 ]
+
+GREETINGS_QUOTES = [
+    "Olá, qual é a boa pra hoje?",
+    "Olá, alguém viu o nudes do guerreirinho de hoje?",
+    "Fala aí, bora pegar uns pombos na praça da Sé?",
+    "Olá humano, sabia que eu tenho uma bunda de lata?",
+    "Oi, curiosidade do dia: Zack Snider é diretor preferido do Washi",
+    "Olá, já ouviu PB hoje?",
+    "Saudações, serei o novo host do PB se a SkyNet dominar o mundo",
+    "Saudações, qual o seu EP preferido do PB?",
+    "Fala aí!",
+    "Quais são as vossas ordens?"
+]
+
+
+def echo_message(update, context):
+    cid = update.message.chat.id
+    message_text = update.message.text
+    if "@procurandobitucasbot" in message_text.lower():
+        if ["oi", "olar", "olá", "ola", "hola", "como está", "como esta", "como vai", "e você", "e voce", "bom dia",
+            "boa tarde", "boa noite"]:
+            context.bot.send_message(cid, random.choice(GREETINGS_QUOTES))
 
 
 def get_error_message():
@@ -286,6 +308,7 @@ def main():
     updater.dispatcher.add_handler(CommandHandler('ultimo', ultimo))
     updater.dispatcher.add_handler(CommandHandler('inscritos', inscritos))
     updater.dispatcher.add_handler(CommandHandler('ranking', ranking))
+    updater.dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, echo_message))
     updater.dispatcher.add_error_handler(error)
     updater.job_queue.run_repeating(notify_assignees, 900, context=updater.bot)
 
