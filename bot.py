@@ -15,9 +15,6 @@ from dateutil.parser import parse
 from random import randrange
 import feedparser
 from peewee import Model, SqliteDatabase, IntegerField
-from selenium import webdriver
-from selenium.webdriver.firefox.options import Options
-from bs4 import BeautifulSoup
 
 
 
@@ -164,28 +161,9 @@ def inscritos(update, context):
 
 
 def ranking(update, context):
-    url = "https://chartable.com/podcasts/procurando-bitucas"
-    profile = webdriver.FirefoxProfile()
-    options = Options()
-    options.headless = True
-    browser = webdriver.Firefox(profile, options=options)
-    browser.get(url)
-    html = browser.page_source
-    soup = BeautifulSoup(html, 'html.parser')
-    raw_position = soup.find('td', class_="pr2 pb2 w2")
-    if not raw_position:
-        logger.error("Could not find td tag in chartable.com")
-        context.bot.send_message(chat_id=update.message.chat_id, text=get_error_message())
-        return
-
-    match = re.search(r"#(\d+)", raw_position.decode())
-    if not match:
-        logger.error("Could not find ranking match on chartable.com")
-        context.bot.send_message(chat_id=update.message.chat_id, text=get_error_message())
-        return
     context.bot.send_message(chat_id=update.message.chat_id,
-                             text="Posição atual no Apple Podcast: {}."
-                                  "\nAjude o PB falando mal dos outros podcasts na categoria hobbies.".format(match.group(0)))
+                             text="Acesse https://chartable.com/podcasts/procurando-bitucas para obter a posição atual."
+                             "\nNão esqueça de falar mal dos outros podcasts da categoria hobbies")
 
 
 def notificar(update, context):
