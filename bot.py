@@ -1,17 +1,23 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import logging
-import requests
+import re
+import os
 import json
-import subprocess
 import base64
+
+import requests
+
 from datetime import timedelta, datetime, timezone
 from telegram.ext import Updater, CommandHandler
 from dateutil.parser import parse
 from random import randrange
 import feedparser
 from peewee import Model, SqliteDatabase, IntegerField
-import os
+from selenium import webdriver
+from selenium.webdriver.firefox.options import Options
+from bs4 import BeautifulSoup
+
 
 
 HEROKUAPP = os.getenv("HEROKUAPP", "uilianries")
@@ -115,6 +121,27 @@ def help(update, context):
 def inscritos(update, context):
     context.bot.send_message(chat_id=update.message.chat_id,
                              text="Computei uma legião aproximada em {} fãs!".format(randrange(3000000000, 4000000000)))
+
+
+def ranking(update, context):
+    url = "https://chartable.com/podcasts/procurando-bitucas"
+    profile = webdriver.FirefoxProfile()
+    options = Options()
+    options.headless = True
+    browser = webdriver.Firefox(profile, options=options)
+    browser.get(url)
+    html = browser.page_source
+    soup = BeautifulSoup(html, 'html.parser')
+    raw_position = soup.find('td', class_="pr2 pb2 w2")
+    if not raw_position:
+        logger.error("Could not find td tag in chartable.com")
+    match = re.search(r"#(\d+)", raw_position.decode())
+    if not match:
+        logger.error("Could not find ranking match on chartable.com")
+
+    context.bot.send_message(chat_id=update.message.chat_id,
+                             text="Posição atual no Apple Podcast: {}."
+                                  "\nAjude o PB falando mal dos outros podcasts na categoria hobbies.".format(match.group(0)))
 
 
 def notificar(update, context):
@@ -236,6 +263,7 @@ def main():
     updater.dispatcher.add_handler(CommandHandler('parar', parar))
     updater.dispatcher.add_handler(CommandHandler('ultimo', ultimo))
     updater.dispatcher.add_handler(CommandHandler('inscritos', inscritos))
+    updater.dispatcher.add_handler(CommandHandler('ranking', ranking))
     updater.dispatcher.add_error_handler(error)
     updater.job_queue.run_repeating(notify_assignees, 900, context=updater.bot)
 
