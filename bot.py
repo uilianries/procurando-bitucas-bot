@@ -14,13 +14,26 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from dateutil.parser import parse
 from random import randrange
 import feedparser
+import click
 from peewee import Model, SqliteDatabase, IntegerField
+from google.assistant.embedded.v1alpha2 import embedded_assistant_pb2
+from google.assistant.embedded.v1alpha2 import embedded_assistant_pb2_grpc
+import google.auth.transport.grpc
+import google.auth.transport.requests
+import google.oauth2.credentials
 
 
 
+ASSISTANT_API_ENDPOINT = 'embeddedassistant.googleapis.com'
+DEFAULT_GRPC_DEADLINE = 60 * 3 + 5
 HEROKUAPP = os.getenv("HEROKUAPP", "uilianries")
 TOKEN = os.getenv("TELEGRAM_TOKEN", None)
 DATABASE = SqliteDatabase('pb.sqlite')
+DEVICE_MODEL_ID = os.getenv('DEVICE_MODEL_ID', None)
+PROJECT_ID = os.getenv('PROJECT_ID', None)
+CREDENTIALS_CONTENT = os.getenv('CREDENTIALS_CONTENT', None)
+CREDENTIALS_FILENAME = os.getenv('CREDENTIALS_FILENAME', None)
+ASSISTANT = None
 
 
 class BaseModel(Model):
@@ -49,27 +62,91 @@ ERROR_QUOTES = [
     "Esse comando está com interferência causada pelo seu óculos 4D, tire sua cueca e tente novamente",
 ]
 
-GREETINGS_QUOTES = [
-    "Olá, qual é a boa pra hoje?",
-    "Olá, alguém viu o nudes do guerreirinho de hoje?",
-    "Fala aí, bora pegar uns pombos na praça da Sé?",
-    "Olá humano, sabia que eu tenho uma bunda de lata?",
-    "Oi, curiosidade do dia: Zack Snider é diretor preferido do Washi",
-    "Olá, já ouviu PB hoje?",
-    "Saudações, serei o novo host do PB se a SkyNet dominar o mundo",
-    "Saudações, qual o seu EP preferido do PB?",
-    "Fala aí!",
-    "Quais são as vossas ordens?"
-]
+
+class TextAssistant(object):
+    """Sample Assistant that supports text based conversations.
+
+    Args:
+      language_code: language for the conversation.
+      device_model_id: identifier of the device model.
+      device_id: identifier of the registered device instance.
+      channel: authorized gRPC channel for connection to the
+        Google Assistant API.
+      deadline_sec: gRPC deadline in seconds for Google Assistant API call.
+    """
+
+    def __init__(self, language_code, device_model_id, device_id,
+                 channel, deadline_sec):
+        self.language_code = language_code
+        self.device_model_id = device_model_id
+        self.device_id = device_id
+        self.conversation_state = None
+        self.assistant = embedded_assistant_pb2_grpc.EmbeddedAssistantStub(channel,)
+        self.deadline = deadline_sec
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, etype, e, traceback):
+        if e:
+            return False
+
+    def assist(self, text_query):
+        """Send a text request to the Assistant and playback the response."""
+        def iter_assist_requests():
+            dialog_state_in = embedded_assistant_pb2.DialogStateIn(
+                language_code=self.language_code,
+                conversation_state=b''
+            )
+            if self.conversation_state:
+                dialog_state_in.conversation_state = self.conversation_state
+            config = embedded_assistant_pb2.AssistConfig(
+                audio_out_config=embedded_assistant_pb2.AudioOutConfig(
+                    encoding='LINEAR16',
+                    sample_rate_hertz=16000,
+                    volume_percentage=0,
+                ),
+                dialog_state_in=dialog_state_in,
+                device_config=embedded_assistant_pb2.DeviceConfig(
+                    device_id=self.device_id,
+                    device_model_id=self.device_model_id,
+                ),
+                text_query=text_query,
+            )
+            req = embedded_assistant_pb2.AssistRequest(config=config)
+            yield req
+
+        display_text = None
+        for resp in self.assistant.Assist(iter_assist_requests(), self.deadline):
+            if resp.dialog_state_out.conversation_state:
+                conversation_state = resp.dialog_state_out.conversation_state
+                self.conversation_state = conversation_state
+            if resp.dialog_state_out.supplemental_display_text:
+                display_text = resp.dialog_state_out.supplemental_display_text
+        return display_text
 
 
-def echo_message(update, context):
+def assistant(update, context):
+    message = update.message
     cid = update.message.chat.id
-    message_text = update.message.text
-    if "@procurandobitucasbot" in message_text.lower():
-        if ["oi", "olar", "olá", "ola", "hola", "como está", "como esta", "como vai", "e você", "e voce", "bom dia",
-            "boa tarde", "boa noite"]:
-            context.bot.send_message(cid, random.choice(GREETINGS_QUOTES))
+    if message.chat.type == 'private':
+        display_text = ASSISTANT.assist(text_query=message.text)
+        context.bot.send_message(cid, display_text)
+    # If in a group, only reply to mentions.
+    elif "@procurandobitucasbot" in update.message.text.lower():
+        # Strip first word (the mention) from message text.
+        message_text = update.message.text.lower().replace("@procurandobitucasbot", "")
+        if message_text.strip():
+            # Get response from Google Assistant API.
+            display_text = ASSISTANT.assist(text_query=message_text)
+            # Verify that the message is in an authorized chat or from an
+            # authorized user.
+            if display_text is not None:
+                context.bot.send_message(cid, display_text)
+            else:
+                context.bot.send_message(cid, get_error_message())
+        else:
+            context.bot.send_message(cid, "Você me mencionou, mas não disse o que quer.")
 
 
 def get_error_message():
@@ -255,8 +332,26 @@ def remove_chat_id(chat_id):
 def is_subscribed(chat_id):
     return ChatId.select().where(ChatId.chatid == chat_id)
 
-
-def main():
+@click.command()
+@click.option('--api-endpoint', default=ASSISTANT_API_ENDPOINT,
+              metavar='<api endpoint>', show_default=True,
+              help='Address of Google Assistant API service.')
+@click.option('--credentials-path',
+              metavar='<credentials path>', show_default=True,
+              default=os.path.join(click.get_app_dir('google-oauthlib-tool'),
+                                   'credentials.json'),
+              help='Path to read OAuth2 credentials.')
+@click.option('--lang', show_default=True,
+              metavar='<language code>',
+              default='pt-BR',
+              help='Language code of the Assistant')
+@click.option('--verbose', '-v', is_flag=True, default=False,
+              help='Verbose logging.')
+@click.option('--grpc-deadline', default=DEFAULT_GRPC_DEADLINE,
+              metavar='<grpc deadline>', show_default=True,
+              help='gRPC deadline in seconds')
+def main(api_endpoint, credentials_path, lang, verbose,
+         grpc_deadline, *args, **kwargs):
     if TOKEN is None:
         logger.error("TELEGRAM TOKEN is Empty.")
         raise ValueError("TELEGRAM_TOKEN is unset.")
@@ -264,8 +359,17 @@ def main():
     download_db()
 
     DATABASE.connect(reuse_if_open=True)
-
     updater = Updater(TOKEN, use_context=True)
+
+    try:
+        credentials = google.oauth2.credentials.Credentials(token=None, **json.loads(CREDENTIALS_CONTENT))
+        http_request = google.auth.transport.requests.Request()
+        credentials.refresh(http_request)
+    except Exception as e:
+        logging.error('Error loading credentials: %s', e)
+        logging.error('Run google-oauthlib-tool to initialize '
+                      'new OAuth 2.0 credentials.')
+        return
 
     updater.dispatcher.add_handler(CommandHandler("start", start))
     updater.dispatcher.add_handler(CommandHandler("ajuda", help))
@@ -286,9 +390,15 @@ def main():
     updater.dispatcher.add_handler(CommandHandler('ultimo', ultimo))
     updater.dispatcher.add_handler(CommandHandler('inscritos', inscritos))
     updater.dispatcher.add_handler(CommandHandler('ranking', ranking))
-    updater.dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, echo_message))
+    updater.dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, assistant))
     updater.dispatcher.add_error_handler(error)
     updater.job_queue.run_repeating(notify_assignees, 900, context=updater.bot)
+
+    grpc_channel = google.auth.transport.grpc.secure_authorized_channel(credentials, http_request, api_endpoint)
+    logging.info('Connecting to %s', api_endpoint)
+
+    global ASSISTANT
+    ASSISTANT = TextAssistant(lang, DEVICE_MODEL_ID, PROJECT_ID, grpc_channel, grpc_deadline)
 
     updater.start_polling()
     updater.idle()

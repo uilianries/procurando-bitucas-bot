@@ -3,5 +3,9 @@ feedparser==6.0.8
 python-dateutil==2.8.2
 peewee==3.14.4
 requests==2.26.0
-beautifulsoup4==4.9.3
-selenium==3.141.0
+
+
+click==8.0.3
+google-assistant-grpc==0.3.0
+google-auth-oauthlib==0.4.6
+google-assistant-sdk==0.6.0
