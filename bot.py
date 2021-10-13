@@ -135,7 +135,8 @@ def assistant(update, context):
     # If in a group, only reply to mentions.
     elif "@procurandobitucasbot" in update.message.text.lower():
         # Strip first word (the mention) from message text.
-        message_text = update.message.text.lower().replace("@procurandobitucasbot", "")
+        index = update.message.text.lower().find("@procurandobitucasbot")
+        message_text = update.message.text[:index] + update.message.text[index+21:]
         if message_text.strip():
             # Get response from Google Assistant API.
             display_text = ASSISTANT.assist(text_query=message_text)
