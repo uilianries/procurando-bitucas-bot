@@ -9,6 +9,7 @@ import random
 import configparser
 
 import requests
+from typing import Tuple, Optional
 
 from datetime import timedelta, datetime, timezone
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, ChatMemberHandler, CallbackContext
