@@ -553,7 +553,7 @@ def main(api_endpoint, credentials_path, lang, verbose,
     global ASSISTANT
     ASSISTANT = TextAssistant(lang, get_device_model_id(), get_project_id(), grpc_channel, grpc_deadline)
 
-    updater.start_polling()
+    updater.start_polling(allowed_updates=Update.ALL_TYPES)
     updater.idle()
     DATABASE.close()
 
