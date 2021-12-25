@@ -129,7 +129,7 @@ def extract_status_change(chat_member_update: ChatMemberUpdated,) -> Optional[Tu
 def greet_chat_members(update: Update, context: CallbackContext) -> None:
     """Greets new users in chats and announces when someone leaves"""
     member_name = update.chat_member.new_chat_member.user.username
-    context.bot.send_message(cid, "Olá {}".format(member_name))
+    update.effective_chat.send_message(cid, "Olá {}".format(member_name))
 
     result = extract_status_change(update.chat_member)
     if result is None:
@@ -141,10 +141,10 @@ def greet_chat_members(update: Update, context: CallbackContext) -> None:
 
     if not was_member and is_member:
         message = random.choice(GREETINGS_QUOTES)
-        context.bot.send_message(cid, message)
+        update.effective_chat.send_message(cid, message)
     elif was_member and not is_member:
         message = random.choice(GOODBYE_QUOTES)
-        context.bot.send_message(cid, message.format(member_name))
+        update.effective_chat.send_message(cid, message.format(member_name))
 
 
 class TextAssistant(object):
