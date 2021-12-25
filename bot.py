@@ -128,6 +128,9 @@ def extract_status_change(chat_member_update: ChatMemberUpdated,) -> Optional[Tu
 
 def greet_chat_members(update: Update, context: CallbackContext) -> None:
     """Greets new users in chats and announces when someone leaves"""
+    member_name = update.chat_member.new_chat_member.user.username
+    context.bot.send_message(cid, "Olá {}".format(member_name))
+
     result = extract_status_change(update.chat_member)
     if result is None:
         return
