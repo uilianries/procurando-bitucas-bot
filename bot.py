@@ -6,6 +6,7 @@ import os
 import json
 import base64
 import random
+import configparser
 
 import requests
 
@@ -24,15 +25,16 @@ import google.oauth2.credentials
 
 
 
+CONFIG_FILE = "/etc/bitucas.conf"
 ASSISTANT_API_ENDPOINT = 'embeddedassistant.googleapis.com'
 DEFAULT_GRPC_DEADLINE = 60 * 3 + 5
 HEROKUAPP = os.getenv("HEROKUAPP", "uilianries")
-TOKEN = os.getenv("TELEGRAM_TOKEN", None)
+TELEGRAM_TOKEN = None
+GITLAB_TOKEN = None
 DATABASE = SqliteDatabase('pb.sqlite')
-DEVICE_MODEL_ID = os.getenv('DEVICE_MODEL_ID', None)
-PROJECT_ID = os.getenv('PROJECT_ID', None)
-CREDENTIALS_CONTENT = os.getenv('CREDENTIALS_CONTENT', None)
-CREDENTIALS_FILENAME = os.getenv('CREDENTIALS_FILENAME', None)
+DEVICE_MODEL_ID = None
+PROJECT_ID = None
+CREDENTIALS_CONTENT = None
 ASSISTANT = None
 
 
@@ -60,6 +62,11 @@ ERROR_QUOTES = [
     "Não estou com vontade de atender humano folgado hoje, peça pro host.",
     "Você de novo aqui? Vai ver por isso que não está funcionando essa merda.",
     "Esse comando está com interferência causada pelo seu óculos 4D, tire sua cueca e tente novamente",
+    "Desculpe, não compreendi o que você escreveu, poderia repetir?",
+    "Você tem o intelecto de uma mula, se expresse melhor!",
+    "Pensei que o meu dia seria tranquilo, sem um otário para me importunar",
+    "Estou indisponível no momento, saí pra comprar cigarros",
+    "Não sei, pergunta pra Siri ou pra Alexa",
 ]
 
 
@@ -124,6 +131,72 @@ class TextAssistant(object):
             if resp.dialog_state_out.supplemental_display_text:
                 display_text = resp.dialog_state_out.supplemental_display_text
         return display_text
+
+
+def get_telegram_token():
+    global TELEGRAM_TOKEN
+    if not TELEGRAM_TOKEN:
+        TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", None)
+        if not TELEGRAM_TOKEN:
+            if not os.path.exists(CONFIG_FILE):
+                raise ValueError("Could not obtain TELEGRAM_TOKEN")
+            config = configparser.ConfigParser()
+            config.read(CONFIG_FILE)
+            TELEGRAM_TOKEN = config["tokens"]["telegram"]
+    return TELEGRAM_TOKEN
+
+
+def get_gitlab_token():
+    global GITLAB_TOKEN
+    if not GITLAB_TOKEN:
+        GITLAB_TOKEN = os.getenv("GITLAB_TOKEN", None)
+        if not GITLAB_TOKEN:
+            if not os.path.exists(CONFIG_FILE):
+                raise ValueError("Could not obtain GITLAB_TOKEN")
+            config = configparser.ConfigParser()
+            config.read(CONFIG_FILE)
+            GITLAB_TOKEN = config["tokens"]["gitlab"]
+    return GITLAB_TOKEN
+
+
+def get_device_model_id():
+    global DEVICE_MODEL_ID
+    if not DEVICE_MODEL_ID:
+        DEVICE_MODEL_ID = os.getenv("DEVICE_MODEL_ID", None)
+        if not DEVICE_MODEL_ID:
+            if not os.path.exists(CONFIG_FILE):
+                raise ValueError("Could not obtain DEVICE_MODEL_ID")
+            config = configparser.ConfigParser()
+            config.read(CONFIG_FILE)
+            DEVICE_MODEL_ID = config["oauth"]["device_model_id"]
+    return DEVICE_MODEL_ID
+
+
+def get_project_id():
+    global PROJECT_ID
+    if not PROJECT_ID:
+        PROJECT_ID = os.getenv("PROJECT_ID", None)
+        if not PROJECT_ID:
+            if not os.path.exists(CONFIG_FILE):
+                raise ValueError("Could not obtain PROJECT_ID")
+            config = configparser.ConfigParser()
+            config.read(CONFIG_FILE)
+            PROJECT_ID = config["oauth"]["project_id"]
+    return PROJECT_ID
+
+
+def get_oauth_credentials():
+    global CREDENTIALS_CONTENT
+    if not CREDENTIALS_CONTENT:
+        CREDENTIALS_CONTENT = os.getenv("CREDENTIALS_CONTENT", None)
+        if not CREDENTIALS_CONTENT:
+            if not os.path.exists(CONFIG_FILE):
+                raise ValueError("Could not obtain CREDENTIALS_CONTENT")
+            config = configparser.ConfigParser()
+            config.read(CONFIG_FILE)
+            CREDENTIALS_CONTENT = config["oauth"]["credentials"]
+    return CREDENTIALS_CONTENT
+
 
 
 def assistant(update, context):
@@ -286,7 +359,7 @@ def update_db():
         content = db_fd.read()
         encoded = base64.b64encode(content)
     payload = {"branch":"main", "author_email":"uilianries@gmail.com", "author_name":"uilianries", "file_path":"pb.slqite.base64", "content": encoded.decode('ascii'), "commit_message":"update db"}
-    headers = {"PRIVATE-TOKEN": os.getenv("GITLAB_TOKEN", "FALSE"), "Content-Type": "application/json"}
+    headers = {"PRIVATE-TOKEN": get_gitlab_token(), "Content-Type": "application/json"}
     response = requests.put("https://gitlab.com/api/v4/projects/30298296/repository/files/pb.sqlite.base64", data=json.dumps(payload), headers=headers)
     if not response.ok:
         logger.error("Could not commit: {}".format(response.json()))
@@ -300,14 +373,14 @@ def create_db():
         content = db_fd.read()
         encoded = base64.b64encode(content)
     payload = {"branch":"main", "author_email":"uilianries@gmail.com", "author_name":"uilianries",  "file_path":"pb.slqite.base64", "content": encoded.decode('ascii'), "commit_message":"update db"}
-    headers = {"PRIVATE-TOKEN": os.getenv("GITLAB_TOKEN", "FALSE"), "Content-Type": "application/json"}
+    headers = {"PRIVATE-TOKEN": get_gitlab_token(), "Content-Type": "application/json"}
     response = requests.post("https://gitlab.com/api/v4/projects/30298296/repository/files/pb.sqlite.base64", data=json.dumps(payload), headers=headers)
     if not response.ok:
         logger.error("Could not commit: {}".format(response.json()))
 
 
 def download_db():
-    headers = {"PRIVATE-TOKEN": os.getenv("GITLAB_TOKEN", "FALSE")}
+    headers = {"PRIVATE-TOKEN": get_gitlab_token()}
     response = requests.get("https://gitlab.com/api/v4/projects/30298296/repository/files/pb%2Esqlite%2Ebase64/raw?ref=main", headers=headers)
     if not response.ok:
         logger.error("Could not download file: {}".format(response.json()))
@@ -353,17 +426,18 @@ def is_subscribed(chat_id):
               help='gRPC deadline in seconds')
 def main(api_endpoint, credentials_path, lang, verbose,
          grpc_deadline, *args, **kwargs):
-    if TOKEN is None:
+    if get_telegram_token() is None:
         logger.error("TELEGRAM TOKEN is Empty.")
         raise ValueError("TELEGRAM_TOKEN is unset.")
 
     download_db()
 
     DATABASE.connect(reuse_if_open=True)
-    updater = Updater(TOKEN, use_context=True)
+    updater = Updater(get_telegram_token(), use_context=True)
+    logging.info("TELEGRAM: {}".format(get_telegram_token()))
 
     try:
-        credentials = google.oauth2.credentials.Credentials(token=None, **json.loads(CREDENTIALS_CONTENT))
+        credentials = google.oauth2.credentials.Credentials(token=None, **json.loads(get_oauth_credentials()))
         http_request = google.auth.transport.requests.Request()
         credentials.refresh(http_request)
     except Exception as e:
@@ -399,7 +473,7 @@ def main(api_endpoint, credentials_path, lang, verbose,
     logging.info('Connecting to %s', api_endpoint)
 
     global ASSISTANT
-    ASSISTANT = TextAssistant(lang, DEVICE_MODEL_ID, PROJECT_ID, grpc_channel, grpc_deadline)
+    ASSISTANT = TextAssistant(lang, get_device_model_id(), get_project_id(), grpc_channel, grpc_deadline)
 
     updater.start_polling()
     updater.idle()
