@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import logging
 import re
+import time
 import os
 import json
 import base64
@@ -18,6 +19,7 @@ from dateutil.parser import parse
 from random import randrange
 import feedparser
 import click
+import pytz
 from peewee import Model, SqliteDatabase, IntegerField
 from google.assistant.embedded.v1alpha2 import embedded_assistant_pb2
 from google.assistant.embedded.v1alpha2 import embedded_assistant_pb2_grpc
@@ -52,6 +54,8 @@ class ChatId(BaseModel):
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+sao_paulo_tz = pytz.timezone("America/Sao_Paulo")
 
 
 ERROR_QUOTES = [
@@ -132,6 +136,50 @@ GOODBYE_QUOTES = [
     "Informo que {} foi recolhido pelo IBAMA.",
     "{} tomou uma decisão inteligente",
     "{} vazou antes ver o Guerreirinho pelado, através do óculos 4D",
+]
+
+COACH_QUOTES = [
+    "Nunca caminhe sem um documento nas mãos. Pessoas com documentos em uma das mãos parecem funcionários ocupadíssimos que se dirigem para reuniões importantes. #democouch",
+    "Sempre leve algum material para casa, isso causa a falsa impressão de que você trabalha mais horas do que você costuma trabalhar. #democouch",
+    "Tenha uma mesa bagunçada. Quando sua mesa está bagunçada parece que você está trabalhando duramente. #democouch",
+    "Construa pilhas enormes de documentos em torno de seu espaço de trabalho para parecer ocupado. #democouch",
+    "Ao observador, o trabalho do ano passado parece o mesmo que o trabalho de hoje; é o volume que conta. Se você souber que alguém está vindo à sua mesa finja que está procurando algum papel. #democouch",
+    "Nunca responda ao seu telefone se você tiver o correio de voz. As pessoas não te ligam para te dar nada além de mais trabalho. #democouch",
+    "Selecione todas suas chamadas sempre através do correio de voz. #democouch",
+    "Se alguém deixar uma mensagem do correio de voz para você e se for para trabalho, responda durante a hora do almoço quando você sabe que eles não estão lá. #democouch",
+    "Você deve estar sempre parecendo impaciente e irritado, para dar ao seu chefe a impressão de que você está realmente ocupado. #democouch",
+    "Sempre deixe o escritório mais tarde, especialmente se o seu chefe estiver por perto. #democouch",
+    "Sempre passe na frente da sala do seu Chefe quando estiver indo embora. #democouch",
+    "Programe os e-mails importantes pare serem enviados bem tarde (por exemplo 21:35, 6:00, etc…) e durante feriados e finais de semana. #democouch",
+    "Fale sozinho quando tiver muita gente por perto, dando a impressão de que você está sob pressão extrema. #democouch",
+    "Empilhar documentos em cima da mesa não é o bastante. Ponha vários livros no chão. (os manuais grossos do computador são melhores ainda). #democouch",
+    "Procure no dicionário palavras difíceis. Construa frases e use-as quando estiver conversando com o seu chefe. Lembre-se: ele não tem que entender o que você diz, desde que o que você diga dê a entender de que você está certo. #democouch",
+    "Querido Papai Noel. Nesse natal eu queria um mindset de filho da puta para poder derrubar o meu chefe. #democouch",
+    "Mensagem urgente de WhatsApp: Responda 3h depois que só prioriza ferramentas do trabalho. #democouch",
+    "Mensagem urgente do trabalho: Responda 2h depois que estava numa ligação no WhatsApp. #democouch",
+    "Mais dicas no livro Demo Couch: Infernizando seu chefe no home office. #democouch",
+    "Nesse verão não deixe de beber muita água no trabalho. Não por causa da saúde, mas sim para poder ir ao banheiro sempre que um problema aparecer. #democouch",
+    "Bora Timeee!!! Não deixe ninguém falar que vc é fracassado. Essa é sua jornada. Seja proativo, e fale antes. #democouch",
+    "Bora timeeeeee!!! Essas casas não serão desapropriadas sozinhas. Bora terraplanar esse mindset derrotista e construir duas torres de auto estima. #democouch",
+    "Dicas Home Office: marque reunião de 2 horas, resolva em 30 minutos, fique logado na sala pra trancar sua agenda. Responda que está em reunião e se cuide. #democouch",
+    "Bora timeee!!! Se o Instagram caiu, tire foto do seu temake, imprima e mande por correio. Seja menos fazendo mais. #democouch",
+    "Isso na privada não são suas fezes, é o reflexo da sua cara expelindo esse mindset modorrento. Escove os dentes e grite no espelho: 'EU SOU O ROCKY BALBOA'. #democouch",
+    "Bora timeeee!!! A Faria Lima não anda sozinha. Seja o Redbull da sua vida!!! #democouch",
+    "Bora Time!!!!! O jogo tá ganho, mas vamos pra cima fazer mais um gol!!! Goleiro que não franga é pq não foi pra bola!!! #democouch",
+    "Vamo timeeee!!! Bora resignificar ASAP essa serotonina em Taffman-E e disruptivar todo esse mindset modorrento. #democouch",
+    "Bora Timeeee!!!! Seja seu próprio Facebook e viralize esse mindset mequetrefe. #democouch",
+    "Timeeee, quero ver todo mundo com o tridente na mão que hj está o inferno puro. Seja o protagonista nessa porra de filme preto e branco que é sua vida. #democouch",
+    "Lute como nunca, perca como sempre. #democouch",
+    "Não deixe uma frase motivacional melhorar o seu dia de merda. #democouch",
+    "Você não pode mudar o seu passado, mas pode estragar o seu futuro! #democouch",
+    "Se foi ruim ontem, fique tranquilo que hoje será pior. #democouch",
+    "Vamos levantar? A vida não consegue te derrubar com você deitado. #democouch",
+    "Não sabendo que era impossível, foi lá e soube. #democouch",
+    "Só dará errado se você tentar. #democouch",
+    "Uma grande jornada termina com uma bela derrota. #democouch",
+    "O não você já tem, agora falta buscar a humilhação. #democouch",
+    "Se alguém te ofendeu sem você merecer, volte lá e mereça! #democouch",
+    "Seja o protagonista do seu fracasso. #democouch",
 ]
 
 
@@ -414,11 +462,16 @@ def notify_assignees(context):
     logger.info("Last ep date: {}".format(date))
 
     parsed_date = parse(date)
-    now = datetime.utcnow().replace(tzinfo=timezone.utc)
+    now = datetime.now(sao_paulo_tz)
     if now - parsed_date < timedelta(minutes=15):
         for entry in ChatId.select():
             logger.info("New episode: {} - Send to {}".format(date, entry.chatid))
             context.bot.send_message(chat_id=entry.chatid, text="Novo episódio - {}: {}".format(last_ep["title"], last_ep["link"]))
+    # Demo Couch every Monday. 10:00 10:15
+    if now.weekday() == 0 and now.hour == 10 and (0 <= now.minute <= 15):
+        message = random.choice(COACH_QUOTES)
+        for entry in ChatId.select():
+            context.bot.send_message(chat_id=entry.chatid, text=message)
 
 
 def parar(update, context):
