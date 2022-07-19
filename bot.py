@@ -180,6 +180,7 @@ COACH_QUOTES = [
     "O não você já tem, agora falta buscar a humilhação. #democouch",
     "Se alguém te ofendeu sem você merecer, volte lá e mereça! #democouch",
     "Seja o protagonista do seu fracasso. #democouch",
+    "Escolha lugares para almoçar que só dê pra ir de carro, que tenha filas longas e que em média o prato chegue 30 minutos depois. Jamais, leve comida de casa, jamais. Fique o mais longe possível do ambiente de trabalho. #democouch"
 ]
 
 
@@ -444,6 +445,12 @@ def ranking(update, context):
                              "\nNão esqueça de falar mal dos outros podcasts da categoria hobbies")
 
 
+def demo_couch(update, context):
+    message = random.choice(COACH_QUOTES)
+    context.bot.send_message(chat_id=update.message.chat_id,
+                             text=message)
+
+
 def notificar(update, context):
     if is_subscribed(update.message.chat_id):
         logging.info("User subscribed again: {}".format(update.message.from_user.username))
@@ -597,6 +604,7 @@ def main(api_endpoint, credentials_path, lang, verbose,
     updater.dispatcher.add_handler(CommandHandler('ultimo', ultimo))
     updater.dispatcher.add_handler(CommandHandler('inscritos', inscritos))
     updater.dispatcher.add_handler(CommandHandler('ranking', ranking))
+    updater.dispatcher.add_handler(CommandHandler('democouch', demo_couch))
     updater.dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, assistant))
     updater.dispatcher.add_handler(MessageHandler(Filters.status_update.new_chat_members, greetings))
     updater.dispatcher.add_handler(MessageHandler(Filters.status_update.left_chat_member, goodbye))
