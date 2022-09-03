@@ -522,8 +522,13 @@ def download_db():
     headers = {"PRIVATE-TOKEN": get_gitlab_token()}
     response = requests.get("https://gitlab.com/api/v4/projects/30298296/repository/files/pb%2Esqlite%2Ebase64/raw?ref=main", headers=headers)
     if not response.ok:
-        logger.error("Could not download file: {}".format(response.json()))
-        if "404 File Not Found" in response.json()["message"]:
+        error_message = "null"
+        try:
+            error_message = response.json()
+        except Exception:
+            error_message = response.text
+        logger.error("Could not download file: {}".format(error_message))
+        if "404 File Not Found" in error_message:
             create_db()
         return
     decoded = base64.b64decode(response.content.decode('ascii'))
