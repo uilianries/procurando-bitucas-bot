@@ -40,6 +40,7 @@ DEVICE_MODEL_ID = None
 PROJECT_ID = None
 CREDENTIALS_CONTENT = None
 ASSISTANT = None
+LAST_NOTIFIED = None
 
 
 class BaseModel(Model):
@@ -470,15 +471,24 @@ def notify_assignees(context):
 
     parsed_date = parse(date)
     now = datetime.now(sao_paulo_tz)
-    if now - parsed_date < timedelta(minutes=15):
-        for entry in ChatId.select():
-            logger.info("New episode: {} - Send to {}".format(date, entry.chatid))
-            context.bot.send_message(chat_id=entry.chatid, text="Novo episódio - {}: {}".format(last_ep["title"], last_ep["link"]))
+
     # Demo Couch every Monday. 10:00 10:15
     if now.weekday() == 0 and now.hour == 10 and (0 <= now.minute <= 15):
         message = random.choice(COACH_QUOTES)
         for entry in ChatId.select():
             context.bot.send_message(chat_id=entry.chatid, text=message)
+
+    if now.day == parsed_date.day and now.month == parsed_date.month and now.year == parsed_date.year:
+        # already notified today
+        if LAST_NOTIFIED is not None and LAST_NOTIFIED.year == now.year and LAST_NOTIFIED.month == now.month and LAST_NOTIFIED.day == now.day:
+            return
+
+        global LAST_NOTIFIED
+        LAST_NOTIFIED = now
+
+        for entry in ChatId.select():
+            logger.info("New episode: {} - Send to {}".format(date, entry.chatid))
+            context.bot.send_message(chat_id=entry.chatid, text="Novo episódio - {}: {}".format(last_ep["title"], last_ep["link"]))
 
 
 def parar(update, context):
@@ -526,7 +536,7 @@ def download_db():
         try:
             error_message = response.json()
         except Exception:
-            error_message = response.text
+            pass
         logger.error("Could not download file: {}".format(error_message))
         if "404 File Not Found" in error_message:
             create_db()
