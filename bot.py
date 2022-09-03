@@ -464,6 +464,7 @@ def notificar(update, context):
 
 
 def notify_assignees(context):
+    global LAST_NOTIFIED
     rss_feed = feedparser.parse("http://procurandobitucas.com/podcast/feed/podcast/")
     last_ep = rss_feed["entries"][0]
     date = last_ep["published"]
@@ -483,7 +484,6 @@ def notify_assignees(context):
         if LAST_NOTIFIED is not None and LAST_NOTIFIED.year == now.year and LAST_NOTIFIED.month == now.month and LAST_NOTIFIED.day == now.day:
             return
 
-        global LAST_NOTIFIED
         LAST_NOTIFIED = now
 
         for entry in ChatId.select():
