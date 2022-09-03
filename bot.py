@@ -666,9 +666,9 @@ def server(server_class=HTTPServer, handler_class=RequestHandler, port=8000):
 
 
 def main():
-    thread = Thread(target=procurando_bitucas)
+    thread = Thread(target=server)
     thread.start()
-    server()
+    procurando_bitucas()
     thread.join()
 
 
