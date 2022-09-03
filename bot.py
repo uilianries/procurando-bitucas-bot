@@ -11,6 +11,8 @@ import configparser
 
 import requests
 from typing import Tuple, Optional
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from threading import Thread
 
 from datetime import timedelta, datetime, timezone
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, ChatMemberHandler, CallbackContext
@@ -578,7 +580,7 @@ def is_subscribed(chat_id):
 @click.option('--grpc-deadline', default=DEFAULT_GRPC_DEADLINE,
               metavar='<grpc deadline>', show_default=True,
               help='gRPC deadline in seconds')
-def main(api_endpoint, credentials_path, lang, verbose,
+def procurando_bitucas(api_endpoint, credentials_path, lang, verbose,
          grpc_deadline, *args, **kwargs):
     if get_telegram_token() is None:
         logger.error("TELEGRAM TOKEN is Empty.")
@@ -635,6 +637,39 @@ def main(api_endpoint, credentials_path, lang, verbose,
     updater.start_polling()
     updater.idle()
     DATABASE.close()
+
+
+class RequestHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        logging.debug(f"GET request: {self.path}")
+        self.send_response(200)
+        self.send_header("Content-type", "application/json")
+        self.end_headers()
+        self.wfile.write(bytes('{"status": "OK"}', "utf-8"))
+
+    def do_POST(self):
+        logging.debug(f"POST request: {self.path}")
+        self.send_response(200)
+        self.send_header("Content-type", "application/json")
+        self.end_headers()
+        self.wfile.write(bytes('{"status": "OK"}', "utf-8"))
+
+
+def server(server_class=HTTPServer, handler_class=RequestHandler, port=8000):
+    server_address = ('', port)
+    httpd = server_class(server_address, handler_class)
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    httpd.server_close()
+
+
+def main():
+    thread = Thread(target=procurando_bitucas)
+    thread.start()
+    server()
+    thread.join()
 
 
 if __name__ == '__main__':
