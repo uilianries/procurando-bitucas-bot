@@ -1,22 +1,14 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import logging
-import re
-import time
 import os
 import json
-import base64
 import random
 import configparser
+import argparse
 
-import requests
-from typing import Tuple, Optional
-from http.server import BaseHTTPRequestHandler, HTTPServer
-from threading import Thread
-
-from datetime import timedelta, datetime, timezone
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, ChatMemberHandler, CallbackContext
-from telegram import Update, Chat, ChatMember, ParseMode, ChatMemberUpdated
+from datetime import datetime
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from dateutil.parser import parse
 from random import randrange
 import feedparser
@@ -34,15 +26,15 @@ import google.oauth2.credentials
 CONFIG_FILE = "/etc/bitucas.conf"
 ASSISTANT_API_ENDPOINT = 'embeddedassistant.googleapis.com'
 DEFAULT_GRPC_DEADLINE = 60 * 3 + 5
-HEROKUAPP = os.getenv("HEROKUAPP", "uilianries")
 TELEGRAM_TOKEN = None
-GITLAB_TOKEN = None
-DATABASE = SqliteDatabase('pb.sqlite')
+DATABASE_PATH = '/home/orangepi/pb.sqlite'
+DATABASE = None
 DEVICE_MODEL_ID = None
 PROJECT_ID = None
 CREDENTIALS_CONTENT = None
 ASSISTANT = None
 LAST_NOTIFIED = None
+NOTIFICATION_INTERVAL = 60 * 5
 
 
 class BaseModel(Model):
@@ -276,20 +268,6 @@ def get_telegram_token():
             TELEGRAM_TOKEN = config["tokens"]["telegram"]
     return TELEGRAM_TOKEN
 
-
-def get_gitlab_token():
-    global GITLAB_TOKEN
-    if not GITLAB_TOKEN:
-        GITLAB_TOKEN = os.getenv("GITLAB_TOKEN", None)
-        if not GITLAB_TOKEN:
-            if not os.path.exists(CONFIG_FILE):
-                raise ValueError("Could not obtain GITLAB_TOKEN")
-            config = configparser.ConfigParser()
-            config.read(CONFIG_FILE)
-            GITLAB_TOKEN = config["tokens"]["gitlab"]
-    return GITLAB_TOKEN
-
-
 def get_device_model_id():
     global DEVICE_MODEL_ID
     if not DEVICE_MODEL_ID:
@@ -505,58 +483,19 @@ def parar(update, context):
                                  text='Você já não está inscrito para receber notficações.')
 
 
-def update_db():
-    with open("pb.sqlite", "rb") as db_fd:
-        content = db_fd.read()
-        encoded = base64.b64encode(content)
-    payload = {"branch":"main", "author_email":"uilianries@gmail.com", "author_name":"uilianries", "file_path":"pb.slqite.base64", "content": encoded.decode('ascii'), "commit_message":"update db"}
-    headers = {"PRIVATE-TOKEN": get_gitlab_token(), "Content-Type": "application/json"}
-    response = requests.put("https://gitlab.com/api/v4/projects/30298296/repository/files/pb.sqlite.base64", data=json.dumps(payload), headers=headers)
-    if not response.ok:
-        logger.error("Could not commit: {}".format(response.json()))
-
-
 def create_db():
-    if not os.path.exists("pb.sqlite"):
+    if not os.path.exists(DATABASE_PATH):
         DATABASE.connect()
         DATABASE.create_tables([ChatId])
-    with open("pb.sqlite", "rb") as db_fd:
-        content = db_fd.read()
-        encoded = base64.b64encode(content)
-    payload = {"branch":"main", "author_email":"uilianries@gmail.com", "author_name":"uilianries",  "file_path":"pb.slqite.base64", "content": encoded.decode('ascii'), "commit_message":"update db"}
-    headers = {"PRIVATE-TOKEN": get_gitlab_token(), "Content-Type": "application/json"}
-    response = requests.post("https://gitlab.com/api/v4/projects/30298296/repository/files/pb.sqlite.base64", data=json.dumps(payload), headers=headers)
-    if not response.ok:
-        logger.error("Could not commit: {}".format(response.json()))
-
-
-def download_db():
-    headers = {"PRIVATE-TOKEN": get_gitlab_token()}
-    response = requests.get("https://gitlab.com/api/v4/projects/30298296/repository/files/pb%2Esqlite%2Ebase64/raw?ref=main", headers=headers)
-    if not response.ok:
-        error_message = "null"
-        try:
-            error_message = response.json()
-        except Exception:
-            pass
-        logger.error("Could not download file: {}".format(error_message))
-        if "404 File Not Found" in error_message:
-            create_db()
-        return
-    decoded = base64.b64decode(response.content.decode('ascii'))
-    with open("pb.sqlite", "wb") as file_db:
-        file_db.write(decoded)
 
 
 def add_chat_id(chat_id):
     ChatId.insert(chatid=chat_id).on_conflict_ignore().execute()
-    update_db()
 
 
 def remove_chat_id(chat_id):
     query = ChatId.delete().where(ChatId.chatid == chat_id)
     query.execute()
-    update_db()
 
 
 def is_subscribed(chat_id):
@@ -580,13 +519,10 @@ def is_subscribed(chat_id):
 @click.option('--grpc-deadline', default=DEFAULT_GRPC_DEADLINE,
               metavar='<grpc deadline>', show_default=True,
               help='gRPC deadline in seconds')
-def procurando_bitucas(api_endpoint, credentials_path, lang, verbose,
-         grpc_deadline, *args, **kwargs):
+def procurando_bitucas(api_endpoint, credentials_path, lang, verbose, grpc_deadline, *args, **kwargs):
     if get_telegram_token() is None:
         logger.error("TELEGRAM TOKEN is Empty.")
         raise ValueError("TELEGRAM_TOKEN is unset.")
-
-    download_db()
 
     DATABASE.connect(reuse_if_open=True)
     updater = Updater(get_telegram_token(), use_context=True)
@@ -626,7 +562,7 @@ def procurando_bitucas(api_endpoint, credentials_path, lang, verbose,
     updater.dispatcher.add_handler(MessageHandler(Filters.status_update.new_chat_members, greetings))
     updater.dispatcher.add_handler(MessageHandler(Filters.status_update.left_chat_member, goodbye))
     updater.dispatcher.add_error_handler(error)
-    updater.job_queue.run_repeating(notify_assignees, 900, context=updater.bot)
+    updater.job_queue.run_repeating(notify_assignees, NOTIFICATION_INTERVAL, context=updater.bot)
 
     grpc_channel = google.auth.transport.grpc.secure_authorized_channel(credentials, http_request, api_endpoint)
     logging.info('Connecting to %s', api_endpoint)
@@ -639,37 +575,22 @@ def procurando_bitucas(api_endpoint, credentials_path, lang, verbose,
     DATABASE.close()
 
 
-class RequestHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        logging.debug(f"GET request: {self.path}")
-        self.send_response(200)
-        self.send_header("Content-type", "application/json")
-        self.end_headers()
-        self.wfile.write(bytes('{"status": "OK"}', "utf-8"))
-
-    def do_POST(self):
-        logging.debug(f"POST request: {self.path}")
-        self.send_response(200)
-        self.send_header("Content-type", "application/json")
-        self.end_headers()
-        self.wfile.write(bytes('{"status": "OK"}', "utf-8"))
-
-
-def server(server_class=HTTPServer, handler_class=RequestHandler, port=8000):
-    server_address = ('', port)
-    httpd = server_class(server_address, handler_class)
-    try:
-        httpd.serve_forever()
-    except KeyboardInterrupt:
-        pass
-    httpd.server_close()
-
-
 def main():
-    thread = Thread(target=server)
-    thread.start()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-c", "--config", help="Configuration file path", type=str)
+    parser.add_argument("-db", "--database", help="SQlite file path", type=str)
+    args = parser.parse_args()
+    global CONFIG_FILE
+    global DATABASE
+    global DATABASE_PATH
+
+    if args.config:
+        CONFIG_FILE = args.config
+    if args.database:
+        DATABASE_PATH = args.database
+    DATABASE = SqliteDatabase(DATABASE_PATH)
+
     procurando_bitucas()
-    thread.join()
 
 
 if __name__ == '__main__':

@@ -5,7 +5,6 @@ peewee==3.14.4
 requests==2.26.0
 protobuf==3.20.1
 
-
 click==8.0.3
 google-assistant-grpc==0.3.0
 google-auth-oauthlib==0.4.6

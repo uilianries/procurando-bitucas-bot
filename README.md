@@ -1,6 +1,6 @@
 # Procurando Bitucas Telegram Bot
 
-A telegram endpoint for a general bot
+A telegram bot for [Procurando Bitucas](http://podcast.procurandobitucas.com/)
 
 #### LICENSE
 [MIT](LICENSE)
