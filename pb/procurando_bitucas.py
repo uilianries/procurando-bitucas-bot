@@ -27,7 +27,7 @@ CONFIG_FILE = "/etc/bitucas.conf"
 ASSISTANT_API_ENDPOINT = 'embeddedassistant.googleapis.com'
 DEFAULT_GRPC_DEADLINE = 60 * 3 + 5
 TELEGRAM_TOKEN = None
-DATABASE_PATH = '/home/orangepi/pb.sqlite'
+DATABASE_PATH = '/home/orangepi/.pb/pb.sqlite'
 DATABASE = None
 DEVICE_MODEL_ID = None
 PROJECT_ID = None
@@ -589,6 +589,7 @@ def main():
     if args.database:
         DATABASE_PATH = args.database
     DATABASE = SqliteDatabase(DATABASE_PATH)
+    create_db()
 
     procurando_bitucas()
 
