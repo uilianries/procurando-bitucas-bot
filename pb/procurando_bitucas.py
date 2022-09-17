@@ -23,12 +23,12 @@ import google.oauth2.credentials
 
 
 
-CONFIG_FILE = "/etc/bitucas.conf"
+CONFIG_FILE = os.getenv("PB_CONFIG", "/etc/bitucas.conf")
 ASSISTANT_API_ENDPOINT = 'embeddedassistant.googleapis.com'
 DEFAULT_GRPC_DEADLINE = 60 * 3 + 5
 TELEGRAM_TOKEN = None
-DATABASE_PATH = '/home/orangepi/.pb/pb.sqlite'
-DATABASE = None
+DATABASE_PATH = os.getenv("PB_DATABASE", '/home/orangepi/.pb/pb.sqlite')
+DATABASE = SqliteDatabase(DATABASE_PATH)
 DEVICE_MODEL_ID = None
 PROJECT_ID = None
 CREDENTIALS_CONTENT = None
@@ -576,21 +576,7 @@ def procurando_bitucas(api_endpoint, credentials_path, lang, verbose, grpc_deadl
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-c", "--config", help="Configuration file path", type=str)
-    parser.add_argument("-db", "--database", help="SQlite file path", type=str)
-    args = parser.parse_args()
-    global CONFIG_FILE
-    global DATABASE
-    global DATABASE_PATH
-
-    if args.config:
-        CONFIG_FILE = args.config
-    if args.database:
-        DATABASE_PATH = args.database
-    DATABASE = SqliteDatabase(DATABASE_PATH)
     create_db()
-
     procurando_bitucas()
 
 
