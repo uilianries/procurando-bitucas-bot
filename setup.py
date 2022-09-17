@@ -49,7 +49,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'run_procurando_bitucas=procurando_bitucas.procurando-bitucas:main',
+            'procurando-bitucas=procurando_bitucas.procurando-bitucas:main',
         ],
     },
 )

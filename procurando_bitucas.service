@@ -1,0 +1,11 @@
+[Unit]
+Description=Procurando Bitucas bot as a service
+After=multi-user.target
+
+[Service]
+Type=idle
+
+ExecStart=${HOME}/.pyenv/shims/procurando_bitucas
+
+[Install]
+WantedBy=multi-user.target
