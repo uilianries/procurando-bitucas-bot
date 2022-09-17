@@ -15,18 +15,19 @@ def get_requires(filename):
 
 def load_version():
     filename = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                            "procurando_bitucas", "__init__.py"))
+                                            "pb", "__init__.py"))
     with open(filename, "rt") as version_file:
         file_init = version_file.read()
         version = re.search("__version__ = '([0-9a-z.-]+)'", file_init).group(1)
         return version
 
 
-project_requirements = get_requires("procurando_bitucas/requirements.txt")
+project_requirements = get_requires("pb/requirements.txt")
 
 setup(
     name='procurando_bitucas_bot',
     version=load_version(),
+    python_requires='>=3.7',
     description='A Telegram bot made for the podcast Procurando Bitucas',
     url='https://github.com/uilianries/procurando-bitucas-bot',
     author='Uilian Ries',
@@ -44,12 +45,6 @@ setup(
     packages=find_packages(),
     install_requires=project_requirements,
     extras_require={},
-    package_data={
-        'procurando_bitucas': ['*.txt'],
-    },
-    entry_points={
-        'console_scripts': [
-            'procurando-bitucas=procurando_bitucas.procurando-bitucas:main',
-        ],
-    },
+    package_data={'pb': ['*.txt']},
+    entry_points={'console_scripts': ['procurando-bitucas=pb.procurando_bitucas:main']}
 )
