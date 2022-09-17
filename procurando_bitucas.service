@@ -1,11 +1,11 @@
 [Unit]
 Description=Procurando Bitucas bot as a service
-After=multi-user.target
 
 [Service]
 Type=idle
-
+Restart=always
 ExecStart=${HOME}/.pyenv/shims/procurando_bitucas
+User=orangepi
 
 [Install]
 WantedBy=multi-user.target
