@@ -5,7 +5,7 @@ import os
 import json
 import random
 import configparser
-import argparse
+import sys
 
 from datetime import datetime
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
@@ -14,7 +14,7 @@ from random import randrange
 import feedparser
 import click
 import pytz
-from peewee import Model, SqliteDatabase, IntegerField
+from peewee import Model, SqliteDatabase, IntegerField, BooleanField
 from google.assistant.embedded.v1alpha2 import embedded_assistant_pb2
 from google.assistant.embedded.v1alpha2 import embedded_assistant_pb2_grpc
 import google.auth.transport.grpc
@@ -22,7 +22,8 @@ import google.auth.transport.requests
 import google.oauth2.credentials
 
 
-
+BITUCAS_UNDER_MAINTENANCE = os.getenv("BITUCAS_UNDER_MAINTENANCE", False)
+BITUCAS_DRY_RUN = os.getenv("BITUCAS_DRY_RUN", False)
 CONFIG_FILE = os.getenv("PB_CONFIG", "/etc/bitucas.conf")
 ASSISTANT_API_ENDPOINT = 'embeddedassistant.googleapis.com'
 DEFAULT_GRPC_DEADLINE = 60 * 3 + 5
@@ -44,6 +45,7 @@ class BaseModel(Model):
 
 class ChatId(BaseModel):
     chatid = IntegerField(unique=True)
+    voice = BooleanField(default=False)
 
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -179,18 +181,24 @@ COACH_QUOTES = [
 ]
 
 
+def send_message(context, chat_id, text):
+    logger.debug(f"[{chat_id}] {text}")
+    if not BITUCAS_DRY_RUN:
+        context.bot.send_message(chat_id=chat_id, text=text)
+
+
 def greetings(update, context):
     message = random.choice(GREETINGS_QUOTES)
     cid = update.message.chat.id
     for member in update.message.new_chat_members:
-        context.bot.send_message(chat_id=cid, text=message.format(member.name))
+        send_message(chat_id=cid, text=message.format(member.name))
 
 
 def goodbye(update, context):
     message = random.choice(GOODBYE_QUOTES)
     cid = update.message.chat.id
     member = update.message.left_chat_member.name
-    context.bot.send_message(chat_id=cid, text=message.format(member))
+    send_message(chat_id=cid, text=message.format(member))
 
 
 class TextAssistant(object):
@@ -268,6 +276,7 @@ def get_telegram_token():
             TELEGRAM_TOKEN = config["tokens"]["telegram"]
     return TELEGRAM_TOKEN
 
+
 def get_device_model_id():
     global DEVICE_MODEL_ID
     if not DEVICE_MODEL_ID:
@@ -307,13 +316,12 @@ def get_oauth_credentials():
     return CREDENTIALS_CONTENT
 
 
-
 def assistant(update, context):
     message = update.message
     cid = update.message.chat.id
     if message.chat.type == 'private':
         display_text = ASSISTANT.assist(text_query=message.text)
-        context.bot.send_message(cid, display_text)
+        send_message(cid, display_text)
     # If in a group, only reply to mentions.
     elif "@procurandobitucasbot" in update.message.text.lower():
         # Strip first word (the mention) from message text.
@@ -325,11 +333,11 @@ def assistant(update, context):
             # Verify that the message is in an authorized chat or from an
             # authorized user.
             if display_text is not None:
-                context.bot.send_message(cid, display_text)
+                send_message(cid, display_text)
             else:
-                context.bot.send_message(cid, get_error_message())
+                send_message(cid, get_error_message())
         else:
-            context.bot.send_message(cid, "Você me mencionou, mas não disse o que quer.")
+            send_message(cid, "Você me mencionou, mas não disse o que quer.")
 
 
 def get_error_message():
@@ -337,72 +345,72 @@ def get_error_message():
 
 
 def start(update, context):
-    context.bot.send_message(chat_id=update.message.chat_id, text='Olá! Procurando pelo pior podcast das podosfera?\nAcesse http://procurandobitucas.com/')
+    send_message(chat_id=update.message.chat_id, text='Olá! Procurando pelo pior podcast das podosfera?\nAcesse http://procurandobitucas.com/')
 
 
 def episodios(update, context):
-    context.bot.send_message(chat_id=update.message.chat_id,
+    send_message(chat_id=update.message.chat_id,
                              text="Todos os episódios: http://procurandobitucas.com/podcast/episodios/")
 
 
 def twitter(update, context):
-    context.bot.send_message(chat_id=update.message.chat_id,
+    send_message(chat_id=update.message.chat_id,
                              text="Twitter oficial do PB: https://twitter.com/procurabitucas")
 
 
 def instagram(update, context):
-    context.bot.send_message(chat_id=update.message.chat_id,
+    send_message(chat_id=update.message.chat_id,
                              text="Instagram oficial do PB: https://www.instagram.com/procurandobitucas")
 
 
 def spotify(update, context):
-    context.bot.send_message(chat_id=update.message.chat_id,
+    send_message(chat_id=update.message.chat_id,
                              text="Ouvir o PB no Spotify: https://open.spotify.com/show/79cz6YQpsKETIZOeHADXeD?si=Pi1YuzU0Tx-d-AfADSYpvg")
 
 
 def apple(update, context):
-    context.bot.send_message(chat_id=update.message.chat_id,
+    send_message(chat_id=update.message.chat_id,
                              text="Ouvir o PR no Apple Podcast: https://itunes.apple.com/br/podcast/procurando-bitucas-um-podcast/id1336239884?mt=2&ls=1")
 
 
 def deezer(update, context):
-    context.bot.send_message(chat_id=update.message.chat_id,
+    send_message(chat_id=update.message.chat_id,
                              text="Ouvir o PR no Deezer: https://www.deezer.com/br/show/520392")
 
 
 def dono(update, context):
-    context.bot.send_message(chat_id=update.message.chat_id,
+    send_message(chat_id=update.message.chat_id,
                              text="Quem é o dono do PB: https://twitter.com/washi_sena")
 
 
 def guerreirinho(update, context):
-    context.bot.send_message(chat_id=update.message.chat_id,
+    send_message(chat_id=update.message.chat_id,
                              text="Quem é o host do PB: https://twitter.com/alcofay2k")
 
 def fotografo(update, context):
-    context.bot.send_message(chat_id=update.message.chat_id,
+    send_message(chat_id=update.message.chat_id,
                              text="Quem é o fotógrafo do PB: https://twitter.com/mmessiasjunior")
 
 
 def telegram(update, context):
-    context.bot.send_message(chat_id=update.message.chat_id,
+    send_message(chat_id=update.message.chat_id,
                              text="Grupo oficial do PB no Telegram: https://t.co/vY2s8UZwLQ?amp=1")
 
 
 def whatsapp(update, context):
-    context.bot.send_message(chat_id=update.message.chat_id,
+    send_message(chat_id=update.message.chat_id,
                              text="Não tem grupo de Zap Zap, use o /telegram")
 
 
 def xvideos(update, context):
-    context.bot.send_message(chat_id=update.message.chat_id,
+    send_message(chat_id=update.message.chat_id,
                              text="Canal no XVideos foi derrubado por excesso de acessos, mas você pode assistir pelo óculos 4D.")
 
 
 def ultimo(update, context):
     rss_feed = feedparser.parse("http://procurandobitucas.com/podcast/feed/podcast/")
     last_ep = rss_feed["entries"][0]
-    context.bot.send_message(chat_id=update.message.chat_id,
+    send_message(chat_id=update.message.chat_id,
                              text="Último episódio disponível: {} - {}".format(last_ep["title"], last_ep["link"]))
 
 
@@ -411,35 +419,35 @@ def error(update, context):
 
 
 def help(update, context):
-    context.bot.send_message(chat_id=update.message.chat_id,
+    send_message(chat_id=update.message.chat_id,
                              text="Use / pra listar os comandos ou utilize o seu óculos 4D!")
 
 
 def inscritos(update, context):
-    context.bot.send_message(chat_id=update.message.chat_id,
+    send_message(chat_id=update.message.chat_id,
                              text="Computei uma legião aproximada em {} fãs!".format(randrange(3000000000, 4000000000)))
 
 
 def ranking(update, context):
-    context.bot.send_message(chat_id=update.message.chat_id,
+    send_message(chat_id=update.message.chat_id,
                              text="Acesse https://chartable.com/podcasts/procurando-bitucas para obter a posição atual."
                              "\nNão esqueça de falar mal dos outros podcasts da categoria hobbies")
 
 
 def demo_couch(update, context):
     message = random.choice(COACH_QUOTES)
-    context.bot.send_message(chat_id=update.message.chat_id,
+    send_message(chat_id=update.message.chat_id,
                              text=message)
 
 
 def notificar(update, context):
     if is_subscribed(update.message.chat_id):
         logging.info("User subscribed again: {}".format(update.message.from_user.username))
-        context.bot.send_message(chat_id=update.message.chat_id, text="Você já está inscrito para receber novos episódios.")
+        send_message(chat_id=update.message.chat_id, text="Você já está inscrito para receber novos episódios.")
         return
 
     logging.info("User subscribed: {}".format(update.message.from_user.username))
-    context.bot.send_message(chat_id=update.message.chat_id, text="Você será notificado quando sair um novo episódio!")
+    send_message(chat_id=update.message.chat_id, text="Você será notificado quando sair um novo episódio!")
     add_chat_id(update.message.chat_id)
 
 
@@ -457,7 +465,7 @@ def notify_assignees(context):
     if now.weekday() == 0 and now.hour == 10 and (0 <= now.minute <= 15):
         message = random.choice(COACH_QUOTES)
         for entry in ChatId.select():
-            context.bot.send_message(chat_id=entry.chatid, text=message)
+            send_message(chat_id=entry.chatid, text=message)
 
     if now.day == parsed_date.day and now.month == parsed_date.month and now.year == parsed_date.year:
         # already notified today
@@ -468,18 +476,18 @@ def notify_assignees(context):
 
         for entry in ChatId.select():
             logger.info("New episode: {} - Send to {}".format(date, entry.chatid))
-            context.bot.send_message(chat_id=entry.chatid, text="Novo episódio - {}: {}".format(last_ep["title"], last_ep["link"]))
+            send_message(chat_id=entry.chatid, text="Novo episódio - {}: {}".format(last_ep["title"], last_ep["link"]))
 
 
 def parar(update, context):
     if is_subscribed(update.message.chat_id):
         logging.info("User unsubscribed: {}".format(update.message.from_user.username))
-        context.bot.send_message(chat_id=update.message.chat_id,
+        send_message(chat_id=update.message.chat_id,
                                  text='Você não receberá novas notificações de episódios.')
         remove_chat_id(update.message.chat_id)
     else:
         logging.info("User unsubscribed again: {}".format(update.message.from_user.username))
-        context.bot.send_message(chat_id=update.message.chat_id,
+        send_message(chat_id=update.message.chat_id,
                                  text='Você já não está inscrito para receber notficações.')
 
 
@@ -527,6 +535,10 @@ def procurando_bitucas(api_endpoint, credentials_path, lang, verbose, grpc_deadl
     DATABASE.connect(reuse_if_open=True)
     updater = Updater(get_telegram_token(), use_context=True)
     logging.info("TELEGRAM: {}".format(get_telegram_token()))
+
+    if BITUCAS_UNDER_MAINTENANCE:
+        logging.warning("Procurando Bitucas is under maintenance. Exiting now.")
+        sys.exit(503)
 
     try:
         credentials = google.oauth2.credentials.Credentials(token=None, **json.loads(get_oauth_credentials()))
