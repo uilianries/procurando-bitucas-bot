@@ -24,6 +24,7 @@ import google.oauth2.credentials
 
 BITUCAS_UNDER_MAINTENANCE = os.getenv("BITUCAS_UNDER_MAINTENANCE", False)
 BITUCAS_DRY_RUN = os.getenv("BITUCAS_DRY_RUN", False)
+BITUCAS_LOGGING_LEVEL = os.getenv("BITUCAS_LOGGING_LEVEL", 10)
 CONFIG_FILE = os.getenv("PB_CONFIG", "/etc/bitucas.conf")
 ASSISTANT_API_ENDPOINT = 'embeddedassistant.googleapis.com'
 DEFAULT_GRPC_DEADLINE = 60 * 3 + 5
@@ -48,8 +49,7 @@ class ChatId(BaseModel):
     voice = BooleanField(default=False)
 
 
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.INFO)
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=BITUCAS_LOGGING_LEVEL)
 logger = logging.getLogger(__name__)
 
 sao_paulo_tz = pytz.timezone("America/Sao_Paulo")
@@ -587,7 +587,21 @@ def procurando_bitucas(api_endpoint, credentials_path, lang, verbose, grpc_deadl
     DATABASE.close()
 
 
+def show_configuration():
+    telegram_token = str(get_telegram_token())[:8]
+    logger.info(f"TELEGRAM TOKEN: {telegram_token}")
+    devide_model_id = get_device_model_id()
+    logger.info(f"DEVICE MODEL ID: {devide_model_id}")
+    project_id = get_project_id()
+    logger.info(f"PROJECT ID: {project_id}")
+    logger.info(f"UNDER MAINTENANCE: {BITUCAS_UNDER_MAINTENANCE}")
+    logger.info(f"DRY RUN: {BITUCAS_DRY_RUN}")
+    logger.info(f"CONFIG FILE: {CONFIG_FILE}")
+    logger.info(f"DATABASE FILE: {DATABASE_PATH}")
+
+
 def main():
+    show_configuration()
     create_db()
     procurando_bitucas()
 
