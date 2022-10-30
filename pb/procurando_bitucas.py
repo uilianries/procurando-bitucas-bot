@@ -29,7 +29,8 @@ CONFIG_FILE = os.getenv("PB_CONFIG", "/etc/bitucas.conf")
 ASSISTANT_API_ENDPOINT = 'embeddedassistant.googleapis.com'
 DEFAULT_GRPC_DEADLINE = 60 * 3 + 5
 TELEGRAM_TOKEN = None
-DATABASE_PATH = os.getenv("PB_DATABASE", '/home/orangepi/.pb/pb.sqlite')
+PB_LOGGING_PATH = os.getenv("PB_LOGGING_FILE", '/home/orangepi/.bitucas/bitucas.log')
+DATABASE_PATH = os.getenv("PB_DATABASE", '/home/orangepi/.bitucas/bitucas.db')
 DATABASE = SqliteDatabase(DATABASE_PATH)
 DEVICE_MODEL_ID = None
 PROJECT_ID = None
@@ -49,8 +50,18 @@ class ChatId(BaseModel):
     voice = BooleanField(default=False)
 
 
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=BITUCAS_LOGGING_LEVEL)
 logger = logging.getLogger(__name__)
+logger.setLevel(BITUCAS_LOGGING_LEVEL)
+formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
+S_HANDLER = logging.StreamHandler()
+S_HANDLER.setLevel(BITUCAS_LOGGING_LEVEL)
+S_HANDLER.setFormatter(formatter)
+F_HANDLER = logging.handlers.RotatingFileHandler(PB_LOGGING_PATH, maxBytes=2*1024*1024, backupCount=2)
+F_HANDLER.setLevel(BITUCAS_LOGGING_LEVEL)
+F_HANDLER.setFormatter(formatter)
+logger.addHandler(S_HANDLER)
+logger.addHandler(F_HANDLER)
+
 
 sao_paulo_tz = pytz.timezone("America/Sao_Paulo")
 
