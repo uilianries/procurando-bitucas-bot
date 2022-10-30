@@ -41,6 +41,7 @@ ASSISTANT = None
 LAST_NOTIFIED = None
 NOTIFICATION_INTERVAL = 60 * 5
 SENT_DEMO = False
+SENT_GOODDAY = False
 
 
 class BaseModel(Model):
@@ -73,6 +74,24 @@ logger.addHandler(F_HANDLER)
 sao_paulo_tz = pytz.timezone("America/Sao_Paulo")
 
 
+def day_of_week():
+    now = datetime.now(sao_paulo_tz)
+    if now.weekday() == 0:
+        return "Segunda-feira"
+    elif now.weekday() == 1:
+        return "Terça-feira"
+    elif now.weekday() == 2:
+        return "Quarta-feira"
+    elif now.weekday() == 3:
+        return "Quinta-feira"
+    elif now.weekday() == 4:
+        return "Sexta-feira"
+    elif now.weekday() == 5:
+        return "Sábado"
+    elif now.weekday() == 6:
+        return "Domingo"
+
+
 ERROR_QUOTES = [
     "Ops! Algo saiu errado! Contate algum humano do PB pra resolver essa merda.",
     "Esse comando não funcionou, eu não assumo esse B.O.! Foi culpa do programador.",
@@ -97,7 +116,7 @@ ERROR_QUOTES = [
     "Liguei pro Butantan pra te cadastrar como espécie rara!",
     "Eu não sou muito boa em elogiar as pessoas, mas pra xingar eu sou uma maravilha.",
     "Hoje está difícil, vou ter que pagar um Uber pra você ir se fuder!",
-    "O dia em que a sua opnião for pizza, eu ligo pra pedir!",
+    "O dia em que a sua opinião for pizza, eu ligo pra pedir!",
     "Vá chupar um canavial de rola!",
     "Estou ocupada minerando Bituca coin, a cryptocueca do Guerreirinho.",
     "Eu pedi pra nascer burra, mas você parece que ajoelhou e implorou!",
@@ -119,6 +138,11 @@ ERROR_QUOTES = [
     "Estou ocupada, ouvindo Procurando Bitucas ... Aliás, OUVÃO!",
     "Estou ocupada, assistindo o Dono apresentar como ser um Demo Coach.",
     "Estou ocupada, assistindo o Dãozinho sair da geladeira pra gravar um novo episódio",
+    "Sua certidão de nascimento é uma carta de desculpas da fábrica de preservativos.",
+    "Só não te xingo porque isso seria abuso com animais!",
+    "Olá, estava pensando em você, estou visitando o zoológico!",
+    "Choque-me, diga algo inteligente!",
+    "Se você realmente quer saber sobre erros, você deve perguntar aos seus pais.",
 ]
 
 
@@ -181,7 +205,7 @@ COACH_QUOTES = [
     "Isso na privada não são suas fezes, é o reflexo da sua cara expelindo esse mindset modorrento. Escove os dentes e grite no espelho: 'EU SOU O ROCKY BALBOA'. #democouch",
     "Bora timeeee!!! A Faria Lima não anda sozinha. Seja o Redbull da sua vida!!! #democouch",
     "Bora Time!!!!! O jogo tá ganho, mas vamos pra cima fazer mais um gol!!! Goleiro que não franga é pq não foi pra bola!!! #democouch",
-    "Vamo timeeee!!! Bora resignificar ASAP essa serotonina em Taffman-E e disruptivar todo esse mindset modorrento. #democouch",
+    "Vamo timeeee!!! Bora resignificar ASAP essa serotonina em Taffman-E e disrruptivar todo esse mindset modorrento. #democouch",
     "Bora Timeeee!!!! Seja seu próprio Facebook e viralize esse mindset mequetrefe. #democouch",
     "Timeeee, quero ver todo mundo com o tridente na mão que hj está o inferno puro. Seja o protagonista nessa porra de filme preto e branco que é sua vida. #democouch",
     "Lute como nunca, perca como sempre. #democouch",
@@ -195,12 +219,56 @@ COACH_QUOTES = [
     "O não você já tem, agora falta buscar a humilhação. #democouch",
     "Se alguém te ofendeu sem você merecer, volte lá e mereça! #democouch",
     "Seja o protagonista do seu fracasso. #democouch",
-    "Escolha lugares para almoçar que só dê pra ir de carro, que tenha filas longas e que em média o prato chegue 30 minutos depois. Jamais, leve comida de casa, jamais. Fique o mais longe possível do ambiente de trabalho. #democouch"
+    "Escolha lugares para almoçar que só dê pra ir de carro, que tenha filas longas e que em média o prato chegue 30 minutos depois. Jamais, leve comida de casa, jamais. Fique o mais longe possível do ambiente de trabalho. #democouch",
+    "Dia de fortalecer a economia local! Ajude o borracheiro da sua cidade, fure o pneu do seu chefe! #democouch"
+]
+
+BOM_DIA_QUOTES = [
+    f"Bom dia! Vamos que é {day_of_week()}, você ainda tem o resto da semana pra fracassar!",
+    "Feliz aniversário! Talvez você não tenha nascido hoje, mas um novo fracasso está para nascer na sua vida!",
+    f"{day_of_week()}, um ótimo dia para soltar os nudes do seu chefe em urgia de traveco!",
+    f"Hoje é {day_of_week()} meus bacanudos!",
+    f"São 10h de uma {day_of_week()} não é?! Semana praticamente encerrada ... mas só pro seu chefe!",
+    f"{day_of_week()}, um ótimo dia para ouvir em episódio do Procurando Bitucas enquanto você é encoxado no mêtro",
+    "Salve! Lembre-se de beber água e se masturbar na empresa. Afinal, você está sendo pago se foder mesmo!",
+    "Um pouco de sabedoria romana: Não importa o que você faça em vida, você ecoará como um fracasso!",
+    f"{day_of_week()} 10 da manhã e o Guerreirinho já postou 30 fotos sem camisa no twitter",
+    f"{day_of_week()}, hoje fazer 0 dias e 10 horas que o Dono está sóbrio. Alguém ligue para os alcoólicos anônimos!",
+    f"{day_of_week()}, dia de você provar que a evolução pode ir em sentido inverso!",
+    "Lembre-se, se você não sair da cama, não há perigo de fracassar o seu dia!",
+    f"{day_of_week()}, não esqueça de entrar no Apple podcast e avaliar mal os concorrentes do Procurando Bitucas!",
+    f"Essa {day_of_week()} tem tudo pra ser um fracasso, só depende de você!",
+    f"Que o Sol ilumine o seu caminho de fracassos nessa {day_of_week()}!",
+    f"Faça boas escolhas e tenha esperança de fracassar nessa {day_of_week()}!",
+    f"Feliz {day_of_week()}! Bora cheirar sovaco no ônibus e morcegar o dia todo!",
+    f"Vamos! {day_of_week()}! Dia de fortalecer a economia local! Peça demissão para cortar despesas na firma!",
+    f"{day_of_week()}, dia de mudar o seu mindset! Hora de performar o seu Bitucas interno!",
+    f"{day_of_week()}, dia de fazer uma boa ação, fale pra mulher do seu que ela sendo corneana!",
+    f"{day_of_week()}, Beba Diabo Verde com gim para desentupir todos os seus males!",
+    f"{day_of_week()}, seja orgulhoso de sí mesmo, Deus criou o mundo em 7 dias, e você precisou apenas de 1 para estragar tudo.",
 ]
 
 
 def remove_emojis_from_text(text):
     return emoji.replace_emoji(text, replace='')
+
+
+def send_audio_message(context, chat_id, text, caption=False):
+    logger.debug(f"[{chat_id}]: {text}")
+    try:
+        audio_path = "/tmp/audio.mp3"
+        text_for_audio = remove_emojis_from_text(text)
+        audio = gTTS(text_for_audio, lang="pt")
+        audio.save(audio_path)
+        if not BITUCAS_DRY_RUN:
+            with open(audio_path, 'rb') as audio_fd:
+                caption_text = text if caption else None
+                context.bot.send_voice(chat_id=chat_id, voice=audio_fd, caption=caption_text)
+        os.remove(audio_path)
+    except Exception as error:
+        logger.error(f"Could not post message: {error}")
+        if not BITUCAS_DRY_RUN:
+            context.bot.send_message(chat_id=chat_id, text=text)
 
 
 def send_message(context, chat_id, text):
@@ -488,9 +556,15 @@ def notificar(update, context):
     add_chat_id(update.message.chat_id)
 
 
+def bom_dia(update, context):
+    message = random.choice(BOM_DIA_QUOTES)
+    send_audio_message(context, update.message.chat_id, message)
+
+
 def notify_assignees(context):
     global LAST_NOTIFIED
     global SENT_DEMO
+    global SENT_GOODDAY
     rss_feed = feedparser.parse("http://procurandobitucas.com/podcast/feed/podcast/")
     last_ep = rss_feed["entries"][0]
     date = last_ep["published"]
@@ -506,6 +580,13 @@ def notify_assignees(context):
             send_message(context, chat_id=entry.chatid, text=message)
         SENT_DEMO = True
 
+    # Good day every Wednesday. 10:00 10:15
+    if now.weekday() == 2 and now.hour == 10 and not SENT_GOODDAY:
+        message = random.choice(BOM_DIA_QUOTES)
+        for entry in ChatId.select():
+            send_audio_message(context, chat_id=entry.chatid, text=message)
+        SENT_GOODDAY = True
+
     if now.day == parsed_date.day and now.month == parsed_date.month and now.year == parsed_date.year:
         # already notified today
         if LAST_NOTIFIED is not None and LAST_NOTIFIED.year == now.year and LAST_NOTIFIED.month == now.month and LAST_NOTIFIED.day == now.day:
@@ -519,6 +600,8 @@ def notify_assignees(context):
 
     if now.weekday() != 0:
         SENT_DEMO = False
+    elif now.weekday() != 2:
+        SENT_GOODDAY = False
 
 
 def parar(update, context):
@@ -642,6 +725,7 @@ def procurando_bitucas(api_endpoint, credentials_path, lang, verbose, grpc_deadl
     updater.dispatcher.add_handler(CommandHandler('ranking', ranking))
     updater.dispatcher.add_handler(CommandHandler('democouch', demo_couch))
     updater.dispatcher.add_handler(CommandHandler('voz', toggle_voice))
+    updater.dispatcher.add_handler(CommandHandler('bomdia', bom_dia))
     updater.dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, assistant))
     updater.dispatcher.add_handler(MessageHandler(Filters.status_update.new_chat_members, greetings))
     updater.dispatcher.add_handler(MessageHandler(Filters.status_update.left_chat_member, goodbye))
