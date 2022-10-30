@@ -4,7 +4,7 @@ Description=Procurando Bitucas bot as a service
 [Service]
 Type=idle
 Restart=always
-ExecStart=/home/orangepi/.pyenv/shims/procurando-bitucas
+ExecStart=/home/orangepi/.pyenv/versions/bitucas/bin/procurando-bitucas
 User=orangepi
 
 [Install]

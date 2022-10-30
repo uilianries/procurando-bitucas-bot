@@ -38,6 +38,7 @@ CREDENTIALS_CONTENT = None
 ASSISTANT = None
 LAST_NOTIFIED = None
 NOTIFICATION_INTERVAL = 60 * 5
+SENT_DEMO = False
 
 
 class BaseModel(Model):
@@ -464,6 +465,7 @@ def notificar(update, context):
 
 def notify_assignees(context):
     global LAST_NOTIFIED
+    global SENT_DEMO
     rss_feed = feedparser.parse("http://procurandobitucas.com/podcast/feed/podcast/")
     last_ep = rss_feed["entries"][0]
     date = last_ep["published"]
@@ -473,10 +475,11 @@ def notify_assignees(context):
     now = datetime.now(sao_paulo_tz)
 
     # Demo Couch every Monday. 10:00 10:15
-    if now.weekday() == 0 and now.hour == 10 and (0 <= now.minute <= 15):
+    if now.weekday() == 0 and now.hour == 10 and not SENT_DEMO:
         message = random.choice(COACH_QUOTES)
         for entry in ChatId.select():
             send_message(chat_id=entry.chatid, text=message)
+        SENT_DEMO = True
 
     if now.day == parsed_date.day and now.month == parsed_date.month and now.year == parsed_date.year:
         # already notified today
@@ -488,6 +491,9 @@ def notify_assignees(context):
         for entry in ChatId.select():
             logger.info("New episode: {} - Send to {}".format(date, entry.chatid))
             send_message(chat_id=entry.chatid, text="Novo episódio - {}: {}".format(last_ep["title"], last_ep["link"]))
+
+    if now.weekday() != 0:
+        SENT_DEMO = False
 
 
 def parar(update, context):
@@ -519,6 +525,7 @@ def remove_chat_id(chat_id):
 
 def is_subscribed(chat_id):
     return ChatId.select().where(ChatId.chatid == chat_id)
+
 
 @click.command()
 @click.option('--api-endpoint', default=ASSISTANT_API_ENDPOINT,
