@@ -203,14 +203,14 @@ def greetings(update, context):
     message = random.choice(GREETINGS_QUOTES)
     cid = update.message.chat.id
     for member in update.message.new_chat_members:
-        send_message(chat_id=cid, text=message.format(member.name))
+        send_message(context, chat_id=cid, text=message.format(member.name))
 
 
 def goodbye(update, context):
     message = random.choice(GOODBYE_QUOTES)
     cid = update.message.chat.id
     member = update.message.left_chat_member.name
-    send_message(chat_id=cid, text=message.format(member))
+    send_message(context, chat_id=cid, text=message.format(member))
 
 
 class TextAssistant(object):
@@ -333,7 +333,7 @@ def assistant(update, context):
     cid = update.message.chat.id
     if message.chat.type == 'private':
         display_text = ASSISTANT.assist(text_query=message.text)
-        send_message(cid, display_text)
+        send_message(context, cid, display_text)
     # If in a group, only reply to mentions.
     elif "@procurandobitucasbot" in update.message.text.lower():
         # Strip first word (the mention) from message text.
@@ -345,11 +345,11 @@ def assistant(update, context):
             # Verify that the message is in an authorized chat or from an
             # authorized user.
             if display_text is not None:
-                send_message(cid, display_text)
+                send_message(context, cid, display_text)
             else:
-                send_message(cid, get_error_message())
+                send_message(context, cid, get_error_message())
         else:
-            send_message(cid, "Você me mencionou, mas não disse o que quer.")
+            send_message(context, cid, "Você me mencionou, mas não disse o que quer.")
 
 
 def get_error_message():
@@ -357,72 +357,72 @@ def get_error_message():
 
 
 def start(update, context):
-    send_message(chat_id=update.message.chat_id, text='Olá! Procurando pelo pior podcast das podosfera?\nAcesse http://procurandobitucas.com/')
+    send_message(context, chat_id=update.message.chat_id, text='Olá! Procurando pelo pior podcast das podosfera?\nAcesse http://procurandobitucas.com/')
 
 
 def episodios(update, context):
-    send_message(chat_id=update.message.chat_id,
+    send_message(context, chat_id=update.message.chat_id,
                              text="Todos os episódios: http://procurandobitucas.com/podcast/episodios/")
 
 
 def twitter(update, context):
-    send_message(chat_id=update.message.chat_id,
+    send_message(context, chat_id=update.message.chat_id,
                              text="Twitter oficial do PB: https://twitter.com/procurabitucas")
 
 
 def instagram(update, context):
-    send_message(chat_id=update.message.chat_id,
+    send_message(context, chat_id=update.message.chat_id,
                              text="Instagram oficial do PB: https://www.instagram.com/procurandobitucas")
 
 
 def spotify(update, context):
-    send_message(chat_id=update.message.chat_id,
+    send_message(context, chat_id=update.message.chat_id,
                              text="Ouvir o PB no Spotify: https://open.spotify.com/show/79cz6YQpsKETIZOeHADXeD?si=Pi1YuzU0Tx-d-AfADSYpvg")
 
 
 def apple(update, context):
-    send_message(chat_id=update.message.chat_id,
+    send_message(context, chat_id=update.message.chat_id,
                              text="Ouvir o PR no Apple Podcast: https://itunes.apple.com/br/podcast/procurando-bitucas-um-podcast/id1336239884?mt=2&ls=1")
 
 
 def deezer(update, context):
-    send_message(chat_id=update.message.chat_id,
+    send_message(context, chat_id=update.message.chat_id,
                              text="Ouvir o PR no Deezer: https://www.deezer.com/br/show/520392")
 
 
 def dono(update, context):
-    send_message(chat_id=update.message.chat_id,
+    send_message(context, chat_id=update.message.chat_id,
                              text="Quem é o dono do PB: https://twitter.com/washi_sena")
 
 
 def guerreirinho(update, context):
-    send_message(chat_id=update.message.chat_id,
+    send_message(context, chat_id=update.message.chat_id,
                              text="Quem é o host do PB: https://twitter.com/alcofay2k")
 
 def fotografo(update, context):
-    send_message(chat_id=update.message.chat_id,
+    send_message(context, chat_id=update.message.chat_id,
                              text="Quem é o fotógrafo do PB: https://twitter.com/mmessiasjunior")
 
 
 def telegram(update, context):
-    send_message(chat_id=update.message.chat_id,
+    send_message(context, chat_id=update.message.chat_id,
                              text="Grupo oficial do PB no Telegram: https://t.co/vY2s8UZwLQ?amp=1")
 
 
 def whatsapp(update, context):
-    send_message(chat_id=update.message.chat_id,
+    send_message(context, chat_id=update.message.chat_id,
                              text="Não tem grupo de Zap Zap, use o /telegram")
 
 
 def xvideos(update, context):
-    send_message(chat_id=update.message.chat_id,
+    send_message(context, chat_id=update.message.chat_id,
                              text="Canal no XVideos foi derrubado por excesso de acessos, mas você pode assistir pelo óculos 4D.")
 
 
 def ultimo(update, context):
     rss_feed = feedparser.parse("http://procurandobitucas.com/podcast/feed/podcast/")
     last_ep = rss_feed["entries"][0]
-    send_message(chat_id=update.message.chat_id,
+    send_message(context, chat_id=update.message.chat_id,
                              text="Último episódio disponível: {} - {}".format(last_ep["title"], last_ep["link"]))
 
 
@@ -431,35 +431,35 @@ def error(update, context):
 
 
 def help(update, context):
-    send_message(chat_id=update.message.chat_id,
+    send_message(context, chat_id=update.message.chat_id,
                              text="Use / pra listar os comandos ou utilize o seu óculos 4D!")
 
 
 def inscritos(update, context):
-    send_message(chat_id=update.message.chat_id,
+    send_message(context, chat_id=update.message.chat_id,
                              text="Computei uma legião aproximada em {} fãs!".format(randrange(3000000000, 4000000000)))
 
 
 def ranking(update, context):
-    send_message(chat_id=update.message.chat_id,
+    send_message(context, chat_id=update.message.chat_id,
                              text="Acesse https://chartable.com/podcasts/procurando-bitucas para obter a posição atual."
                              "\nNão esqueça de falar mal dos outros podcasts da categoria hobbies")
 
 
 def demo_couch(update, context):
     message = random.choice(COACH_QUOTES)
-    send_message(chat_id=update.message.chat_id,
+    send_message(context, chat_id=update.message.chat_id,
                              text=message)
 
 
 def notificar(update, context):
     if is_subscribed(update.message.chat_id):
         logging.info("User subscribed again: {}".format(update.message.from_user.username))
-        send_message(chat_id=update.message.chat_id, text="Você já está inscrito para receber novos episódios.")
+        send_message(context, chat_id=update.message.chat_id, text="Você já está inscrito para receber novos episódios.")
         return
 
     logging.info("User subscribed: {}".format(update.message.from_user.username))
-    send_message(chat_id=update.message.chat_id, text="Você será notificado quando sair um novo episódio!")
+    send_message(context, chat_id=update.message.chat_id, text="Você será notificado quando sair um novo episódio!")
     add_chat_id(update.message.chat_id)
 
 
@@ -478,7 +478,7 @@ def notify_assignees(context):
     if now.weekday() == 0 and now.hour == 10 and not SENT_DEMO:
         message = random.choice(COACH_QUOTES)
         for entry in ChatId.select():
-            send_message(chat_id=entry.chatid, text=message)
+            send_message(context, chat_id=entry.chatid, text=message)
         SENT_DEMO = True
 
     if now.day == parsed_date.day and now.month == parsed_date.month and now.year == parsed_date.year:
@@ -490,7 +490,7 @@ def notify_assignees(context):
 
         for entry in ChatId.select():
             logger.info("New episode: {} - Send to {}".format(date, entry.chatid))
-            send_message(chat_id=entry.chatid, text="Novo episódio - {}: {}".format(last_ep["title"], last_ep["link"]))
+            send_message(context, chat_id=entry.chatid, text="Novo episódio - {}: {}".format(last_ep["title"], last_ep["link"]))
 
     if now.weekday() != 0:
         SENT_DEMO = False
@@ -499,12 +499,12 @@ def notify_assignees(context):
 def parar(update, context):
     if is_subscribed(update.message.chat_id):
         logging.info("User unsubscribed: {}".format(update.message.from_user.username))
-        send_message(chat_id=update.message.chat_id,
+        send_message(context, chat_id=update.message.chat_id,
                                  text='Você não receberá novas notificações de episódios.')
         remove_chat_id(update.message.chat_id)
     else:
         logging.info("User unsubscribed again: {}".format(update.message.from_user.username))
-        send_message(chat_id=update.message.chat_id,
+        send_message(context, chat_id=update.message.chat_id,
                                  text='Você já não está inscrito para receber notficações.')
 
 
