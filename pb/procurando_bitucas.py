@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import logging
+import logging.handlers
 import os
 import json
 import random
 import configparser
 import sys
+from gtts import gTTS
 
 from datetime import datetime
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
@@ -14,6 +15,7 @@ from random import randrange
 import feedparser
 import click
 import pytz
+import emoji
 from peewee import Model, SqliteDatabase, IntegerField, BooleanField
 from google.assistant.embedded.v1alpha2 import embedded_assistant_pb2
 from google.assistant.embedded.v1alpha2 import embedded_assistant_pb2_grpc
@@ -48,7 +50,11 @@ class BaseModel(Model):
 
 class ChatId(BaseModel):
     chatid = IntegerField(unique=True)
-    voice = BooleanField(default=False)
+
+
+class Voice(BaseModel):
+    chat = IntegerField(unique=True)
+    active = BooleanField(default=False)
 
 
 logger = logging.getLogger(__name__)
@@ -193,10 +199,29 @@ COACH_QUOTES = [
 ]
 
 
+def remove_emojis_from_text(text):
+    return emoji.replace_emoji(text, replace='')
+
+
 def send_message(context, chat_id, text):
-    logger.debug(f"[{chat_id}] {text}")
-    if not BITUCAS_DRY_RUN:
-        context.bot.send_message(chat_id=chat_id, text=text)
+    logger.debug(f"[{chat_id}]: {text}")
+    try:
+        row = Voice.get(Voice.chat == chat_id)
+        if row.active:
+            audio_path = "/tmp/output.mp3"
+            text_for_audio = remove_emojis_from_text(text)
+            audio = gTTS(text_for_audio, lang="pt")
+            audio.save(audio_path)
+            if not BITUCAS_DRY_RUN:
+                with open(audio_path, 'rb') as audio_fd:
+                    context.bot.send_voice(chat_id=chat_id, voice=audio_fd, caption=text)
+            os.remove(audio_path)
+        else:
+            context.bot.send_message(chat_id=chat_id, text=text)
+    except Exception as error:
+        logger.error(f"Could not post message: {error}")
+        if not BITUCAS_DRY_RUN:
+            context.bot.send_message(chat_id=chat_id, text=text)
 
 
 def greetings(update, context):
@@ -511,7 +536,7 @@ def parar(update, context):
 def create_db():
     if not os.path.exists(DATABASE_PATH):
         DATABASE.connect()
-        DATABASE.create_tables([ChatId])
+        DATABASE.create_tables([ChatId, Voice])
 
 
 def add_chat_id(chat_id):
@@ -525,6 +550,34 @@ def remove_chat_id(chat_id):
 
 def is_subscribed(chat_id):
     return ChatId.select().where(ChatId.chatid == chat_id)
+
+
+def toggle_voice(update, context):
+    try:
+        voice = Voice.get(Voice.chat == update.message.chat_id)
+    except Exception:
+        voice = Voice(chat=update.message.chat_id, active=True)
+    else:
+        voice.active = not voice.active
+    voice.save()
+
+    active_messages = [
+        "Entrando em modo 'Sua esposa depois de um dia de trabalho', depois não reclame se eu falar demais.",
+        "Não me calarei!",
+        "Agora vou poder te humilhar em áudio também!",
+        "Adicionando voz!",
+    ]
+    deactive_messages = [
+        "Entrando no modo boquinha de siri.",
+        "Cansou de me ouvir? Então tá!",
+        "Me calarei para o mundo!",
+        "Desligando o plugin de fofoqueira.",
+        "Irei me silenciar agora, adeus!",
+    ]
+    if voice.active:
+        send_message(context, chat_id=update.message.chat_id, text=random.choice(active_messages))
+    else:
+        send_message(context, chat_id=update.message.chat_id, text=random.choice(deactive_messages))
 
 
 @click.command()
@@ -588,6 +641,7 @@ def procurando_bitucas(api_endpoint, credentials_path, lang, verbose, grpc_deadl
     updater.dispatcher.add_handler(CommandHandler('inscritos', inscritos))
     updater.dispatcher.add_handler(CommandHandler('ranking', ranking))
     updater.dispatcher.add_handler(CommandHandler('democouch', demo_couch))
+    updater.dispatcher.add_handler(CommandHandler('voz', toggle_voice))
     updater.dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, assistant))
     updater.dispatcher.add_handler(MessageHandler(Filters.status_update.new_chat_members, greetings))
     updater.dispatcher.add_handler(MessageHandler(Filters.status_update.left_chat_member, goodbye))

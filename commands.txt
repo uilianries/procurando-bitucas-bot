@@ -16,3 +16,4 @@ inscritos - Quantos fãs o PB tem espalhado pelo mundo (aprox)
 ajuda - Listar todos os comandos disponíveis
 fotografo - Quem é o #chupamessias
 ranking - Posição do PB na podosfera
+voz - Habilitar e desabilitar mensagens de voz
