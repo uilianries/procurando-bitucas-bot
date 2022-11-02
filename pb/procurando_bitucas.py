@@ -224,28 +224,28 @@ COACH_QUOTES = [
 ]
 
 BOM_DIA_QUOTES = [
-    f"Bom dia! Vamos que é {day_of_week()}, você ainda tem o resto da semana pra fracassar!",
+    f"Bom dia! Vamos que é {}, você ainda tem o resto da semana pra fracassar!",
     "Feliz aniversário! Talvez você não tenha nascido hoje, mas um novo fracasso está para nascer na sua vida!",
-    f"{day_of_week()}, um ótimo dia para soltar os nudes do seu chefe em urgia de traveco!",
-    f"Hoje é {day_of_week()} meus bacanudos!",
-    f"São 10h de uma {day_of_week()} não é?! Semana praticamente encerrada ... mas só pro seu chefe!",
-    f"{day_of_week()}, um ótimo dia para ouvir em episódio do Procurando Bitucas enquanto você é encoxado no mêtro",
+    f"{}, um ótimo dia para soltar os nudes do seu chefe em urgia de traveco!",
+    f"Hoje é {} meus bacanudos!",
+    f"São 10h de uma {} não é?! Semana praticamente encerrada ... mas só pro seu chefe!",
+    f"{}, um ótimo dia para ouvir em episódio do Procurando Bitucas enquanto você é encoxado no mêtro",
     "Salve! Lembre-se de beber água e se masturbar na empresa. Afinal, você está sendo pago se foder mesmo!",
     "Um pouco de sabedoria romana: Não importa o que você faça em vida, você ecoará como um fracasso!",
-    f"{day_of_week()} 10 da manhã e o Guerreirinho já postou 30 fotos sem camisa no twitter",
-    f"{day_of_week()}, hoje fazer 0 dias e 10 horas que o Dono está sóbrio. Alguém ligue para os alcoólicos anônimos!",
-    f"{day_of_week()}, dia de você provar que a evolução pode ir em sentido inverso!",
+    f"{} 10 da manhã e o Guerreirinho já postou 30 fotos sem camisa no twitter",
+    f"{}, hoje fazer 0 dias e 10 horas que o Dono está sóbrio. Alguém ligue para os alcoólicos anônimos!",
+    f"{}, dia de você provar que a evolução pode ir em sentido inverso!",
     "Lembre-se, se você não sair da cama, não há perigo de fracassar o seu dia!",
-    f"{day_of_week()}, não esqueça de entrar no Apple podcast e avaliar mal os concorrentes do Procurando Bitucas!",
-    f"Essa {day_of_week()} tem tudo pra ser um fracasso, só depende de você!",
-    f"Que o Sol ilumine o seu caminho de fracassos nessa {day_of_week()}!",
-    f"Faça boas escolhas e tenha esperança de fracassar nessa {day_of_week()}!",
-    f"Feliz {day_of_week()}! Bora cheirar sovaco no ônibus e morcegar o dia todo!",
-    f"Vamos! {day_of_week()}! Dia de fortalecer a economia local! Peça demissão para cortar despesas na firma!",
-    f"{day_of_week()}, dia de mudar o seu mindset! Hora de performar o seu Bitucas interno!",
-    f"{day_of_week()}, dia de fazer uma boa ação, fale pra mulher do seu que ela sendo corneana!",
-    f"{day_of_week()}, Beba Diabo Verde com gim para desentupir todos os seus males!",
-    f"{day_of_week()}, seja orgulhoso de sí mesmo, Deus criou o mundo em 7 dias, e você precisou apenas de 1 para estragar tudo.",
+    f"{}, não esqueça de entrar no Apple podcast e avaliar mal os concorrentes do Procurando Bitucas!",
+    f"Essa {} tem tudo pra ser um fracasso, só depende de você!",
+    f"Que o Sol ilumine o seu caminho de fracassos nessa {}!",
+    f"Faça boas escolhas e tenha esperança de fracassar nessa {}!",
+    f"Feliz {}! Bora cheirar sovaco no ônibus e morcegar o dia todo!",
+    f"Vamos! {}! Dia de fortalecer a economia local! Peça demissão para cortar despesas na firma!",
+    f"{}, dia de mudar o seu mindset! Hora de performar o seu Bitucas interno!",
+    f"{}, dia de fazer uma boa ação, fale pra mulher do seu que ela sendo corneana!",
+    f"{}, Beba Diabo Verde com gim para desentupir todos os seus males!",
+    f"{}, seja orgulhoso de sí mesmo, Deus criou o mundo em 7 dias, e você precisou apenas de 1 para estragar tudo.",
 ]
 
 
@@ -583,6 +583,7 @@ def notify_assignees(context):
     # Good day every Wednesday. 10:00 10:15
     if now.weekday() == 2 and now.hour == 10 and not SENT_GOODDAY:
         message = random.choice(BOM_DIA_QUOTES)
+        message = message.replace("{}", day_of_week())
         for entry in ChatId.select():
             send_audio_message(context, chat_id=entry.chatid, text=message)
         SENT_GOODDAY = True
