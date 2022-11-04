@@ -230,12 +230,12 @@ BOM_DIA_QUOTES = [
     "Hoje é {} meus bacanudos!",
     "São 10h de uma {} não é?! Semana praticamente encerrada ... mas só pro seu chefe!",
     "{}, um ótimo dia para ouvir em episódio do Procurando Bitucas enquanto você é encoxado no mêtro",
-    "Salve! Lembre-se de beber água e se masturbar na empresa. Afinal, você está sendo pago se foder mesmo!",
-    "Um pouco de sabedoria romana: Não importa o que você faça em vida, você ecoará como um fracasso!",
+    "Salve! Hoje é {} e lembre-se de beber água e se masturbar na empresa. Afinal, você está sendo pago se foder mesmo!",
+    "{}, Um pouco de sabedoria romana: Não importa o que você faça em vida, você ecoará como um fracasso!",
     "{} 10 da manhã e o Guerreirinho já postou 30 fotos sem camisa no twitter",
     "{}, hoje fazer 0 dias e 10 horas que o Dono está sóbrio. Alguém ligue para os alcoólicos anônimos!",
     "{}, dia de você provar que a evolução pode ir em sentido inverso!",
-    "Lembre-se, se você não sair da cama, não há perigo de fracassar o seu dia!",
+    "{}, lembre-se, se você não sair da cama, não há perigo de fracassar o seu dia!",
     "{}, não esqueça de entrar no Apple podcast e avaliar mal os concorrentes do Procurando Bitucas!",
     "Essa {} tem tudo pra ser um fracasso, só depende de você!",
     "Que o Sol ilumine o seu caminho de fracassos nessa {}!",
@@ -583,9 +583,8 @@ def notify_assignees(context):
     # Good day every Wednesday. 10:00 10:15
     if now.weekday() == 2 and now.hour == 10 and not SENT_GOODDAY:
         message = random.choice(BOM_DIA_QUOTES)
-        message = message.replace("{}", day_of_week())
         for entry in ChatId.select():
-            send_audio_message(context, chat_id=entry.chatid, text=message)
+            send_audio_message(context, chat_id=entry.chatid, text=message.format(day_of_week()))
         SENT_GOODDAY = True
 
     if now.day == parsed_date.day and now.month == parsed_date.month and now.year == parsed_date.year:
