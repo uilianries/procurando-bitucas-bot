@@ -446,6 +446,11 @@ def assistant(update, context):
             send_message(context, cid, "Você me mencionou, mas não disse o que quer.")
 
 
+def send_bom_dia_audio(context, chat_id):
+    message = random.choice(BOM_DIA_QUOTES)
+    send_audio_message(context, chat_id, message.format(day_of_week()))
+
+
 def get_error_message():
     return random.choice(ERROR_QUOTES)
 
@@ -558,8 +563,7 @@ def notificar(update, context):
 
 
 def bom_dia(update, context):
-    message = random.choice(BOM_DIA_QUOTES)
-    send_audio_message(context, update.message.chat_id, message)
+    send_bom_dia_audio(context, update.message.chat_id)
 
 
 def notify_assignees(context):
@@ -583,11 +587,8 @@ def notify_assignees(context):
 
     # Good day every Wednesday. 10:00 10:15
     if now.weekday() == 2 and now.hour == 10 and not SENT_GOODDAY:
-        message = random.choice(BOM_DIA_QUOTES)
-        day = day_of_week()
-        message = message.format(day)
         for entry in ChatId.select():
-            send_audio_message(context, chat_id=entry.chatid, text=message)
+            send_bom_dia_audio(context, entry.chat_id)
         SENT_GOODDAY = True
 
     if now.day == parsed_date.day and now.month == parsed_date.month and now.year == parsed_date.year:
