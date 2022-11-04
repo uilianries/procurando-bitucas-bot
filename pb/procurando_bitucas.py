@@ -74,23 +74,6 @@ logger.addHandler(F_HANDLER)
 sao_paulo_tz = pytz.timezone("America/Sao_Paulo")
 
 
-def day_of_week():
-    now = datetime.now(sao_paulo_tz)
-    if now.weekday() == 0:
-        return "Segunda-feira"
-    elif now.weekday() == 1:
-        return "Terça-feira"
-    elif now.weekday() == 2:
-        return "Quarta-feira"
-    elif now.weekday() == 3:
-        return "Quinta-feira"
-    elif now.weekday() == 4:
-        return "Sexta-feira"
-    elif now.weekday() == 5:
-        return "Sábado"
-    elif now.weekday() == 6:
-        return "Domingo"
-
 
 ERROR_QUOTES = [
     "Ops! Algo saiu errado! Contate algum humano do PB pra resolver essa merda.",
@@ -225,7 +208,7 @@ COACH_QUOTES = [
 
 BOM_DIA_QUOTES = [
     "Bom dia! Vamos que é {}, você ainda tem o resto da semana pra fracassar!",
-    "Feliz aniversário! Talvez você não tenha nascido hoje, mas um novo fracasso está para nascer na sua vida!",
+    "{}! Feliz aniversário! Talvez você não tenha nascido hoje, mas um novo fracasso está para nascer na sua vida!",
     "{}, um ótimo dia para soltar os nudes do seu chefe em urgia de traveco!",
     "Hoje é {} meus bacanudos!",
     "São 10h de uma {} não é?! Semana praticamente encerrada ... mas só pro seu chefe!",
@@ -233,7 +216,7 @@ BOM_DIA_QUOTES = [
     "Salve! Hoje é {} e lembre-se de beber água e se masturbar na empresa. Afinal, você está sendo pago se foder mesmo!",
     "{}, Um pouco de sabedoria romana: Não importa o que você faça em vida, você ecoará como um fracasso!",
     "{} 10 da manhã e o Guerreirinho já postou 30 fotos sem camisa no twitter",
-    "{}, hoje fazer 0 dias e 10 horas que o Dono está sóbrio. Alguém ligue para os alcoólicos anônimos!",
+    "{}, hoje fazem 0 dias e 10 horas que o Dono está sóbrio. Alguém ligue para os alcoólicos anônimos!",
     "{}, dia de você provar que a evolução pode ir em sentido inverso!",
     "{}, lembre-se, se você não sair da cama, não há perigo de fracassar o seu dia!",
     "{}, não esqueça de entrar no Apple podcast e avaliar mal os concorrentes do Procurando Bitucas!",
@@ -247,6 +230,24 @@ BOM_DIA_QUOTES = [
     "{}, Beba Diabo Verde com gim para desentupir todos os seus males!",
     "{}, seja orgulhoso de sí mesmo, Deus criou o mundo em 7 dias, e você precisou apenas de 1 para estragar tudo.",
 ]
+
+
+def day_of_week():
+    now = datetime.now(sao_paulo_tz)
+    if now.weekday() == 0:
+        return "Segunda-feira"
+    elif now.weekday() == 1:
+        return "Terça-feira"
+    elif now.weekday() == 2:
+        return "Quarta-feira"
+    elif now.weekday() == 3:
+        return "Quinta-feira"
+    elif now.weekday() == 4:
+        return "Sexta-feira"
+    elif now.weekday() == 5:
+        return "Sábado"
+    elif now.weekday() == 6:
+        return "Domingo"
 
 
 def remove_emojis_from_text(text):
@@ -583,8 +584,10 @@ def notify_assignees(context):
     # Good day every Wednesday. 10:00 10:15
     if now.weekday() == 2 and now.hour == 10 and not SENT_GOODDAY:
         message = random.choice(BOM_DIA_QUOTES)
+        day = day_of_week()
+        message = message.format(day)
         for entry in ChatId.select():
-            send_audio_message(context, chat_id=entry.chatid, text=message.format(day_of_week()))
+            send_audio_message(context, chat_id=entry.chatid, text=message)
         SENT_GOODDAY = True
 
     if now.day == parsed_date.day and now.month == parsed_date.month and now.year == parsed_date.year:
