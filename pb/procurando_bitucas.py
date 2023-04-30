@@ -64,11 +64,7 @@ formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
 S_HANDLER = logging.StreamHandler()
 S_HANDLER.setLevel(BITUCAS_LOGGING_LEVEL)
 S_HANDLER.setFormatter(formatter)
-F_HANDLER = logging.handlers.RotatingFileHandler(PB_LOGGING_PATH, maxBytes=2*1024*1024, backupCount=2)
-F_HANDLER.setLevel(BITUCAS_LOGGING_LEVEL)
-F_HANDLER.setFormatter(formatter)
 logger.addHandler(S_HANDLER)
-logger.addHandler(F_HANDLER)
 
 
 sao_paulo_tz = pytz.timezone("America/Sao_Paulo")
